@@ -10,10 +10,25 @@ from sqlalchemy.orm import Session
 
 from app.db.config import settings
 from app.db.models import Document as DocumentModel
+from app.db.models import DocumentChunk as DocumentChunkModel
 from app.db.session import get_session
+from app.repositories.document_chunks import count_document_chunks, list_document_chunks
 from app.repositories.documents import create_document, get_document, list_documents
 from app.repositories.projects import get_project
-from app.schemas.common import DocumentListResponse, DocumentResponse, DocumentRole
+from app.schemas.common import (
+    DocumentChunkListResponse,
+    DocumentChunkResponse,
+    DocumentListResponse,
+    DocumentParseResponse,
+    DocumentResponse,
+    DocumentRole,
+)
+from app.services.document_parse_service import (
+    DocumentFileNotFoundError,
+    DocumentNotFoundError,
+    parse_document_by_id,
+)
+from app.services.document_parser import DocumentParserError, EmptyParsedDocumentError, UnsupportedDocumentTypeError
 from app.services.storage_service import (
     EmptyUploadError,
     StorageError,
@@ -48,6 +63,23 @@ def document_to_response(document: DocumentModel) -> DocumentResponse:
         created_at=document.created_at,
         updated_at=document.updated_at,
         evidence=[],
+    )
+
+
+def chunk_to_response(chunk: DocumentChunkModel) -> DocumentChunkResponse:
+    return DocumentChunkResponse(
+        id=str(chunk.id),
+        document_id=str(chunk.document_id),
+        project_id=str(chunk.project_id),
+        chunk_index=chunk.chunk_index,
+        page_start=chunk.page_start,
+        page_end=chunk.page_end,
+        section_title=chunk.section_title,
+        content=chunk.content,
+        content_type=chunk.content_type,
+        token_count=chunk.token_count,
+        metadata=chunk.metadata_ or {},
+        created_at=chunk.created_at,
     )
 
 
@@ -133,6 +165,52 @@ def get_document_record(
     if document is None:
         raise HTTPException(status_code=404, detail="Document not found.")
     return document_to_response(document)
+
+
+@router.post("/{document_id}/parse", response_model=DocumentParseResponse)
+def parse_document(
+    document_id: UUID,
+    session: Session = Depends(get_session),
+) -> DocumentParseResponse:
+    try:
+        result = parse_document_by_id(session, document_id)
+    except DocumentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Document not found.") from exc
+    except DocumentFileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Document file not found.") from exc
+    except UnsupportedDocumentTypeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except EmptyParsedDocumentError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except DocumentParserError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Failed to parse document.") from exc
+
+    return DocumentParseResponse(
+        document_id=result.document_id,
+        parse_status=result.parse_status,
+        chunk_count=result.chunk_count,
+        page_count=result.page_count,
+        language=result.language,
+        title=result.title,
+        error=result.error,
+    )
+
+
+@router.get("/{document_id}/chunks", response_model=DocumentChunkListResponse)
+def get_document_chunks(
+    document_id: UUID,
+    limit: Annotated[int, Query(ge=1, le=200)] = 200,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    session: Session = Depends(get_session),
+) -> DocumentChunkListResponse:
+    document = get_document(session, document_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    chunks = list_document_chunks(session, document_id, limit=limit, offset=offset)
+    total = count_document_chunks(session, document_id)
+    return DocumentChunkListResponse(items=[chunk_to_response(chunk) for chunk in chunks], total=total)
 
 
 @router.get("/{document_id}/download")

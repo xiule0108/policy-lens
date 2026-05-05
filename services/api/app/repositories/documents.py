@@ -62,3 +62,33 @@ def update_document_parse_status(
     session.commit()
     session.refresh(document)
     return document
+
+
+def update_document_after_parse(
+    session: Session,
+    document_id: uuid.UUID | str,
+    *,
+    parse_status: str,
+    title: str | None = None,
+    language: str | None = None,
+    page_count: int | None = None,
+    metadata_patch: dict | None = None,
+) -> Document | None:
+    document = get_document(session, document_id)
+    if document is None:
+        return None
+    document.parse_status = parse_status
+    if title is not None:
+        document.title = title
+    if language is not None:
+        document.language = language
+    if page_count is not None:
+        document.page_count = page_count
+    if metadata_patch:
+        document.metadata_ = {
+            **(document.metadata_ or {}),
+            **metadata_patch,
+        }
+    session.commit()
+    session.refresh(document)
+    return document
