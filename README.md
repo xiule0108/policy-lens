@@ -2,7 +2,7 @@
 
 PolicyLens 是一个开源的政策与市场研究解析工作台。项目面向政策研究、市场研究、行业研究和投研分析场景，目标是让用户上传研究文章后，能够解析文章、检索关联政策、查看并导出政策原文、生成政策影响矩阵、生成研究报告，并接入中国及全球主流大模型。
 
-当前仓库处于 v0.1 工程骨架阶段，重点是把 monorepo、开发规范、Docker 服务、API 骨架、前端骨架和模型 Provider 预设跑通。
+当前仓库处于 v0.1 engineering scaffold 阶段，重点是把 monorepo、开发规范、Docker 服务、API 骨架、前端骨架、数据库底座和模型 Provider 预设跑通。v0.1 release target 是跑通上传文章、政策入库、政策原文导出、基础检索、基础分析和报告导出的最小闭环。
 
 ## Core Features
 
@@ -13,17 +13,18 @@ PolicyLens 是一个开源的政策与市场研究解析工作台。项目面向
 - 研究报告导出 API 骨架
 - 中国主流大模型和 OpenAI-compatible Provider 接入预设
 
-## v0.1 Scope
+## v0.1 Scope And Roadmap
 
-v0.1 只提供可运行骨架：
+当前提交提供可运行工程骨架和数据库基础设施：
 
 - Next.js 前端页面使用 mock 数据
-- FastAPI API 返回 mock 业务结构
-- PostgreSQL、Qdrant、worker 和本地存储只完成服务预留
+- FastAPI API 提供 mock 业务结构，并已轻度接入 projects、exports、LLM user providers 的数据库持久化
+- PostgreSQL schema、SQLAlchemy models、Alembic migration 和 repository 层已经建立
+- Qdrant、worker 和本地存储仍以服务预留为主
 - LLM Gateway 只完成 Provider 配置和测试接口骨架
 - 政策原文导出只完成 bundle 目录结构和 manifest skeleton
 
-暂不实现完整解析、检索、rerank、向量化、模型调用、权限系统、真实文件处理和生产级任务队列。
+当前提交暂未实现真实文件解析、完整检索、rerank、向量化、真实模型调用、报告生成和生产级任务队列；这些属于 v0.1 release roadmap。权限系统和政策来源自动抓取可后续迭代。
 
 ## Tech Stack
 
@@ -45,8 +46,15 @@ Start the API locally:
 cd policy-lens/services/api
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install -e ".[dev]"
+alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Set `DATABASE_URL` when using a database other than the default local PostgreSQL URL:
+
+```bash
+export DATABASE_URL=postgresql://policylens:policylens@localhost:5432/policylens
 ```
 
 Start the web app locally:
@@ -73,6 +81,12 @@ cp .env.example .env
 docker compose up --build
 ```
 
+Apply database migrations after the services are running:
+
+```bash
+docker compose exec api alembic upgrade head
+```
+
 Services:
 
 - web: http://localhost:3000
@@ -91,12 +105,15 @@ bash scripts/check.sh
 
 The script runs backend tests, frontend type checks, and frontend production build. It does not require Docker.
 If no Python virtual environment is active, the script creates `services/api/.venv` locally.
+The script also validates Alembic upgrade, downgrade, and upgrade again against a local SQLite check database. GitHub Actions additionally validates the same migration cycle against PostgreSQL.
 
 ## CI Status
 
 GitHub Actions CI is defined in `.github/workflows/ci.yml`. After the repository is pushed to GitHub, check the Actions tab for the `CI` workflow status. The workflow validates:
 
 - backend tests
+- Alembic migration upgrade, downgrade, and upgrade against SQLite
+- Alembic migration upgrade, downgrade, and upgrade against PostgreSQL
 - frontend typecheck and build
 - Docker Compose configuration syntax
 

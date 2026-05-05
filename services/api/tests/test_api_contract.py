@@ -29,11 +29,45 @@ def test_provider_presets_include_china_and_custom_options() -> None:
     assert "local" in provider_ids
 
 
+def test_projects_api_uses_database_records() -> None:
+    empty_response = client.get("/api/projects")
+    assert empty_response.status_code == 200
+    assert empty_response.json()["items"] == []
+
+    create_response = client.post(
+        "/api/projects",
+        json={
+            "name": "Database backed workspace",
+            "industry": "energy",
+            "jurisdictions": ["China"],
+        },
+    )
+    assert create_response.status_code == 201
+    created = create_response.json()
+    assert created["name"] == "Database backed workspace"
+    assert created["jurisdictions"] == ["China"]
+
+    list_response = client.get("/api/projects")
+    assert list_response.status_code == 200
+    assert [item["id"] for item in list_response.json()["items"]] == [created["id"]]
+
+
 def test_policy_original_export_returns_manifest() -> None:
+    project_response = client.post(
+        "/api/projects",
+        json={
+            "name": "Export API workspace",
+            "industry": "energy",
+            "jurisdictions": ["China"],
+        },
+    )
+    assert project_response.status_code == 201
+    project_id = project_response.json()["id"]
+
     response = client.post(
         "/api/exports/policy-originals",
         json={
-            "project_id": "project_demo_001",
+            "project_id": project_id,
             "policy_ids": ["policy_demo_001"],
             "mode": "related_policy_bundle",
         },
@@ -48,3 +82,16 @@ def test_policy_original_export_returns_manifest() -> None:
         "mappings/",
         "checksums/",
     ]
+
+
+def test_policy_original_export_rejects_invalid_project_id() -> None:
+    response = client.post(
+        "/api/exports/policy-originals",
+        json={
+            "project_id": "project_demo_001",
+            "policy_ids": ["policy_demo_001"],
+            "mode": "related_policy_bundle",
+        },
+    )
+
+    assert response.status_code == 422

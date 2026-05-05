@@ -25,6 +25,7 @@ cd services/api
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
+alembic upgrade head
 PYTHONPATH=../..:. uvicorn app.main:app --reload --port 8000
 ```
 
@@ -55,3 +56,31 @@ python -m app.main
 ```
 
 The worker is a placeholder loop in v0.1.
+
+## Database URL
+
+For local PostgreSQL development, set:
+
+```bash
+export DATABASE_URL=postgresql://policylens:policylens@localhost:5432/policylens
+```
+
+The API normalizes `postgresql://` to SQLAlchemy's `postgresql+psycopg://` driver internally.
+
+## Migration Checks
+
+From `services/api`, run:
+
+```bash
+alembic upgrade head
+alembic downgrade -1
+alembic upgrade head
+```
+
+For a quick migration smoke test without PostgreSQL:
+
+```bash
+DATABASE_URL=sqlite+pysqlite:///./.check.db alembic upgrade head
+DATABASE_URL=sqlite+pysqlite:///./.check.db alembic downgrade -1
+DATABASE_URL=sqlite+pysqlite:///./.check.db alembic upgrade head
+```

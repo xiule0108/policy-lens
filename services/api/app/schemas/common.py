@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -50,12 +51,16 @@ class HealthResponse(BaseModel):
 class ProjectCreate(BaseModel):
     name: str
     description: str | None = None
+    industry: str | None = None
+    jurisdictions: list[str] = Field(default_factory=list)
+    default_model_profile: str | None = None
     jurisdiction_focus: list[str] = Field(default_factory=list)
     industry_focus: list[str] = Field(default_factory=list)
 
 
 class Project(ProjectCreate):
     id: str
+    status: str = "active"
     created_at: datetime
     updated_at: datetime
     evidence: list[EvidenceItem] = Field(default_factory=list)
@@ -143,7 +148,7 @@ class AnalysisJob(BaseModel):
 
 
 class PolicyOriginalExportRequest(BaseModel):
-    project_id: str | None = None
+    project_id: UUID | None = None
     policy_ids: list[str] = Field(default_factory=list)
     cited_section_ids: list[str] = Field(default_factory=list)
     mode: ExportMode = "related_policy_bundle"

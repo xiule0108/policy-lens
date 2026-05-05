@@ -19,6 +19,14 @@ cp .env.example .env
 docker compose up --build
 ```
 
+Apply database migrations safely after services start:
+
+```bash
+docker compose exec api alembic upgrade head
+```
+
+Do not run destructive database resets in container startup commands. Migrations should be explicit and reviewable.
+
 ## Inspect Running Services
 
 ```bash
@@ -47,6 +55,15 @@ Validate Compose syntax without starting services:
 
 ```bash
 docker compose config
+```
+
+CI validates Alembic upgrade, downgrade, and upgrade again against both the local SQLite check database and a real PostgreSQL service container.
+
+To inspect migration state inside the API container:
+
+```bash
+docker compose exec api alembic current
+docker compose exec api alembic history
 ```
 
 ## Ports
