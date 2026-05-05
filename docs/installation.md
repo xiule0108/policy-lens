@@ -18,6 +18,14 @@ cp .env.example .env
 
 Do not put real credentials into committed files. API keys should stay in local `.env`, a secret manager, or deployment-specific secret storage.
 
+Upload-related environment defaults:
+
+```bash
+STORAGE_DIR=./storage
+MAX_UPLOAD_SIZE_MB=50
+ALLOWED_UPLOAD_EXTENSIONS=.pdf,.docx,.txt,.md,.markdown,.html,.htm
+```
+
 ## API Setup
 
 ```bash
@@ -66,6 +74,16 @@ export DATABASE_URL=postgresql://policylens:policylens@localhost:5432/policylens
 ```
 
 The API normalizes `postgresql://` to SQLAlchemy's `postgresql+psycopg://` driver internally.
+
+## Upload Storage
+
+Document uploads are stored on the local filesystem for v0.1. The API writes files below `STORAGE_DIR` and stores only relative keys in the database:
+
+```text
+documents/{project_id}/{document_id}/{safe_filename}
+```
+
+`POST /api/documents/upload` keeps `parse_status=pending`; parsing and chunking are handled by later tasks.
 
 ## Migration Checks
 

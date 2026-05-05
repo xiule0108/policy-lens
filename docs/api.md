@@ -19,8 +19,32 @@ Projects represent research workspaces. Projects are backed by the database. An 
 
 - `GET /api/documents`
 - `POST /api/documents/upload`
+- `GET /api/documents/{document_id}`
+- `GET /api/documents/{document_id}/download`
 
-The upload route accepts a JSON contract in v0.1. Future versions can replace the transport with multipart upload while preserving document, source, citation, and evidence fields.
+`POST /api/documents/upload` accepts `multipart/form-data`.
+
+Form fields:
+
+- `project_id`: UUID, required
+- `document_role`: `research_article`, `policy`, or `appendix`; defaults to `research_article`
+- `title`: optional
+- `source_url`: optional
+- `file`: uploaded file, required
+
+Supported extensions are configured by `ALLOWED_UPLOAD_EXTENSIONS` and default to `.pdf,.docx,.txt,.md,.markdown,.html,.htm`. The maximum upload size is configured by `MAX_UPLOAD_SIZE_MB` and defaults to `50`.
+
+Successful uploads write the original file under `STORAGE_DIR` with a relative key:
+
+```text
+documents/{project_id}/{document_id}/{safe_filename}
+```
+
+The `documents` table stores `document_role`, `title`, `file_name`, `file_type`, `file_size`, `storage_key`, `source_url`, `sha256`, content type metadata, and `parse_status=pending`. Full parsing is reserved for a later worker task.
+
+Uploads support Unicode filenames, including Chinese policy filenames. The service stores a safe filename for the filesystem and preserves `metadata.original_filename` and `metadata.safe_filename` on the document record.
+
+`GET /api/documents` lists database-backed document records and accepts optional `project_id`, `limit`, and `offset` query parameters. `GET /api/documents/{document_id}/download` streams the original file without exposing the server absolute path.
 
 ## Policies
 
@@ -66,5 +90,9 @@ The following API surfaces have light database integration:
 - `GET /api/llm/providers`
 - `POST /api/llm/providers`
 - `POST /api/exports/policy-originals`
+- `GET /api/documents`
+- `POST /api/documents/upload`
+- `GET /api/documents/{document_id}`
+- `GET /api/documents/{document_id}/download`
 
 Other endpoints may still return mock contracts while their downstream workflows are built.
