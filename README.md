@@ -57,6 +57,14 @@ Set `DATABASE_URL` when using a database other than the default local PostgreSQL
 export DATABASE_URL=postgresql://policylens:policylens@localhost:5432/policylens
 ```
 
+Configure local upload storage when needed:
+
+```bash
+export STORAGE_DIR=./storage
+export MAX_UPLOAD_SIZE_MB=50
+export ALLOWED_UPLOAD_EXTENSIONS=.pdf,.docx,.txt,.md,.markdown,.html,.htm
+```
+
 Start the web app locally:
 
 ```bash
@@ -106,6 +114,18 @@ bash scripts/check.sh
 The script runs backend tests, frontend type checks, and frontend production build. It does not require Docker.
 If no Python virtual environment is active, the script creates `services/api/.venv` locally.
 The script also validates Alembic upgrade, downgrade, and upgrade again against a local SQLite check database. GitHub Actions additionally validates the same migration cycle against PostgreSQL.
+
+## Document Uploads
+
+`POST /api/documents/upload` accepts `multipart/form-data` with `project_id`, `document_role`, optional `title`, optional `source_url`, and a required `file` part. Supported roles are `research_article`, `policy`, and `appendix`.
+
+Uploaded files are stored under the configured `STORAGE_DIR` using this relative key pattern:
+
+```text
+documents/{project_id}/{document_id}/{safe_filename}
+```
+
+The API stores only the relative `storage_key` in the database, along with file size, file type, content type metadata, source URL, sha256, and `parse_status=pending`. Parsing is reserved for the next v0.1 task.
 
 ## CI Status
 

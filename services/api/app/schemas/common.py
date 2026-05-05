@@ -13,6 +13,8 @@ ExportMode = Literal[
     "machine_readable_json",
 ]
 
+DocumentRole = Literal["research_article", "policy", "appendix"]
+
 
 class SourceRef(BaseModel):
     id: str | None = None
@@ -91,8 +93,28 @@ class Document(BaseModel):
     evidence: list[EvidenceItem] = Field(default_factory=list)
 
 
+class DocumentResponse(BaseModel):
+    id: str
+    project_id: str
+    document_role: DocumentRole
+    title: str | None = None
+    file_name: str
+    file_type: str
+    file_size: int | None = None
+    content_type: str | None = None
+    storage_key: str | None = None
+    language: str | None = None
+    page_count: int | None = None
+    parse_status: str
+    source_url: str | None = None
+    sha256: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    evidence: list[EvidenceItem] = Field(default_factory=list)
+
+
 class DocumentListResponse(BaseModel):
-    items: list[Document]
+    items: list[DocumentResponse]
 
 
 class Policy(BaseModel):
