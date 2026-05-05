@@ -127,6 +127,8 @@ documents/{project_id}/{document_id}/{safe_filename}
 
 The API stores only the relative `storage_key` in the database, along with file size, file type, content type metadata, source URL, sha256, and `parse_status=pending`. Parsing is reserved for the next v0.1 task.
 
+Uploads support Unicode filenames, including Chinese policy filenames. The server stores a safe filename for local storage and keeps `metadata.original_filename` plus `metadata.safe_filename` on the document record.
+
 ## CI Status
 
 GitHub Actions CI is defined in `.github/workflows/ci.yml`. After the repository is pushed to GitHub, check the Actions tab for the `CI` workflow status. The workflow validates:

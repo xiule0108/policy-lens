@@ -3,7 +3,9 @@ from hashlib import sha256
 from fastapi.testclient import TestClient
 
 from app.db.config import settings
+from app.repositories.documents import get_document
 from app.main import app
+from app.routers import documents as document_router
 
 
 client = TestClient(app)
@@ -72,6 +74,43 @@ def test_upload_document_persists_file_and_document_record(tmp_path, monkeypatch
     assert str(tmp_path) not in download_response.headers["content-disposition"]
 
 
+def test_upload_document_accepts_unicode_filename_and_preserves_metadata(
+    tmp_path,
+    monkeypatch,
+    db_session,
+) -> None:
+    monkeypatch.setattr(settings, "storage_dir", str(tmp_path))
+    project_id = create_project()
+    content = "中文政策文件".encode()
+
+    response = client.post(
+        "/api/documents/upload",
+        data={
+            "project_id": project_id,
+            "document_role": "policy",
+            "title": "中文政策文件",
+        },
+        files={"file": ("政策报告.pdf", content, "application/pdf")},
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["file_name"] == "政策报告.pdf"
+    assert payload["file_type"] == ".pdf"
+    assert payload["metadata"]["original_filename"] == "政策报告.pdf"
+    assert payload["metadata"]["safe_filename"] == "政策报告.pdf"
+    assert not payload["storage_key"].startswith(str(tmp_path))
+
+    document = get_document(db_session, payload["id"])
+    assert document is not None
+    assert document.metadata_["original_filename"] == "政策报告.pdf"
+    assert document.metadata_["safe_filename"] == "政策报告.pdf"
+
+    download_response = client.get(f"/api/documents/{payload['id']}/download")
+    assert download_response.status_code == 200
+    assert download_response.content == content
+
+
 def test_upload_document_rejects_invalid_project_id() -> None:
     response = client.post(
         "/api/documents/upload",
@@ -134,4 +173,19 @@ def test_upload_document_rejects_oversized_file(tmp_path, monkeypatch) -> None:
     response = upload_txt(project_id, b"too large")
 
     assert response.status_code == 413
+    assert list(tmp_path.rglob("*")) == []
+
+
+def test_upload_document_cleans_file_when_database_insert_fails(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "storage_dir", str(tmp_path))
+    project_id = create_project()
+
+    def fail_create_document(*args, **kwargs):
+        raise RuntimeError("db insert failed")
+
+    monkeypatch.setattr(document_router, "create_document", fail_create_document)
+
+    response = upload_txt(project_id, b"will be cleaned")
+
+    assert response.status_code == 500
     assert list(tmp_path.rglob("*")) == []

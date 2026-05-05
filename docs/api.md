@@ -42,6 +42,8 @@ documents/{project_id}/{document_id}/{safe_filename}
 
 The `documents` table stores `document_role`, `title`, `file_name`, `file_type`, `file_size`, `storage_key`, `source_url`, `sha256`, content type metadata, and `parse_status=pending`. Full parsing is reserved for a later worker task.
 
+Uploads support Unicode filenames, including Chinese policy filenames. The service stores a safe filename for the filesystem and preserves `metadata.original_filename` and `metadata.safe_filename` on the document record.
+
 `GET /api/documents` lists database-backed document records and accepts optional `project_id`, `limit`, and `offset` query parameters. `GET /api/documents/{document_id}/download` streams the original file without exposing the server absolute path.
 
 ## Policies

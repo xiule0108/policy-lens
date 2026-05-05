@@ -108,6 +108,7 @@ class DocumentResponse(BaseModel):
     parse_status: str
     source_url: str | None = None
     sha256: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime
     evidence: list[EvidenceItem] = Field(default_factory=list)

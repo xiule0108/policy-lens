@@ -44,6 +44,7 @@ def document_to_response(document: DocumentModel) -> DocumentResponse:
         parse_status=document.parse_status,
         source_url=document.source_url,
         sha256=document.sha256,
+        metadata=metadata,
         created_at=document.created_at,
         updated_at=document.updated_at,
         evidence=[],
@@ -108,10 +109,15 @@ def upload_document(
                 "parse_status": "pending",
                 "source_url": source_url,
                 "sha256": stored_file.sha256,
-                "metadata": {"content_type": stored_file.content_type},
+                "metadata": {
+                    "content_type": stored_file.content_type,
+                    "original_filename": stored_file.original_filename,
+                    "safe_filename": stored_file.file_name,
+                },
             },
         )
     except Exception as exc:
+        session.rollback()
         delete_stored_file(stored_file.absolute_path, storage_root)
         raise HTTPException(status_code=500, detail="Failed to create document record.") from exc
 

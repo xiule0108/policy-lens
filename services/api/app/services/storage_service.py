@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import hashlib
 from pathlib import Path
 import re
+import unicodedata
 
 from fastapi import UploadFile
 
@@ -36,6 +37,7 @@ class StoragePathError(StorageError):
 class StoredFile:
     storage_key: str
     absolute_path: Path
+    original_filename: str
     file_name: str
     file_type: str
     content_type: str
@@ -43,24 +45,40 @@ class StoredFile:
     sha256: str
 
 
-def normalize_filename(filename: str | None) -> str:
+def extract_original_filename(filename: str | None) -> str:
     raw_filename = (filename or "").replace("\\", "/").split("/")[-1]
+    raw_filename = unicodedata.normalize("NFKC", raw_filename)
     raw_filename = "".join(char for char in raw_filename if ord(char) >= 32 and ord(char) != 127)
     raw_filename = raw_filename.strip()
     if raw_filename in {"", ".", ".."}:
         return "upload.bin"
+    return raw_filename
 
-    safe_filename = re.sub(r"[^A-Za-z0-9._ -]+", "_", raw_filename)
-    safe_filename = re.sub(r"\s+", "_", safe_filename).strip("._ ")
-    if not safe_filename:
-        return "upload.bin"
 
-    if len(safe_filename) <= MAX_FILENAME_LENGTH:
-        return safe_filename
+def truncate_filename(stem: str, suffix: str) -> str:
+    max_stem_length = max(1, MAX_FILENAME_LENGTH - len(suffix))
+    if len(stem) > max_stem_length:
+        stem = stem[:max_stem_length].rstrip(" ._")
+    if not stem:
+        stem = "upload"
+    return f"{stem}{suffix}" if suffix else stem
 
-    suffix = Path(safe_filename).suffix
-    stem = safe_filename[: MAX_FILENAME_LENGTH - len(suffix)]
-    return f"{stem.rstrip('._ ')}{suffix}" if suffix else safe_filename[:MAX_FILENAME_LENGTH]
+
+def normalize_filename(filename: str | None) -> str:
+    original_filename = extract_original_filename(filename)
+    suffix = Path(original_filename).suffix
+    stem = original_filename[: -len(suffix)] if suffix else original_filename
+
+    stem = re.sub(r"(?u)[^\w .-]+", "_", stem)
+    stem = re.sub(r"\s+", "_", stem).strip(" ._")
+    if not stem:
+        stem = "upload"
+
+    suffix = re.sub(r"[^A-Za-z0-9.]+", "", suffix)
+    if suffix == ".":
+        suffix = ""
+
+    return truncate_filename(stem, suffix)
 
 
 def normalize_allowed_extensions(allowed_extensions: set[str]) -> set[str]:
@@ -113,6 +131,7 @@ def save_upload_file(
     max_size_bytes: int,
     allowed_extensions: set[str],
 ) -> StoredFile:
+    original_filename = extract_original_filename(upload_file.filename)
     safe_filename = normalize_filename(upload_file.filename)
     file_type = validate_upload_extension(safe_filename, allowed_extensions)
     storage_root = storage_root.resolve()
@@ -153,6 +172,7 @@ def save_upload_file(
     return StoredFile(
         storage_key=storage_key,
         absolute_path=target_path,
+        original_filename=original_filename,
         file_name=safe_filename,
         file_type=file_type,
         content_type=upload_file.content_type or "application/octet-stream",
