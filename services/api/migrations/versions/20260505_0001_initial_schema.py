@@ -5,9 +5,12 @@ Revises:
 Create Date: 2026-05-05 00:00:00.000000
 """
 
+from __future__ import annotations
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.types import TypeEngine
 
 
 revision = "20260505_0001"
@@ -16,11 +19,11 @@ branch_labels = None
 depends_on = None
 
 
-def uuid_type() -> sa.TypeEngine:
+def uuid_type() -> TypeEngine:
     return sa.String(length=36).with_variant(postgresql.UUID(as_uuid=True), "postgresql")
 
 
-def json_type() -> sa.TypeEngine:
+def json_type() -> TypeEngine:
     return sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql")
 
 
