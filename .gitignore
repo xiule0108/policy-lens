@@ -29,3 +29,4 @@ build/
 .coverage
 
 *.log
+*.db

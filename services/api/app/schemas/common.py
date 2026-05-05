@@ -50,12 +50,16 @@ class HealthResponse(BaseModel):
 class ProjectCreate(BaseModel):
     name: str
     description: str | None = None
+    industry: str | None = None
+    jurisdictions: list[str] = Field(default_factory=list)
+    default_model_profile: str | None = None
     jurisdiction_focus: list[str] = Field(default_factory=list)
     industry_focus: list[str] = Field(default_factory=list)
 
 
 class Project(ProjectCreate):
     id: str
+    status: str = "active"
     created_at: datetime
     updated_at: datetime
     evidence: list[EvidenceItem] = Field(default_factory=list)
