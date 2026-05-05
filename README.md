@@ -105,14 +105,15 @@ bash scripts/check.sh
 
 The script runs backend tests, frontend type checks, and frontend production build. It does not require Docker.
 If no Python virtual environment is active, the script creates `services/api/.venv` locally.
-The script also validates Alembic upgrade, downgrade, and upgrade again against a local SQLite check database.
+The script also validates Alembic upgrade, downgrade, and upgrade again against a local SQLite check database. GitHub Actions additionally validates the same migration cycle against PostgreSQL.
 
 ## CI Status
 
 GitHub Actions CI is defined in `.github/workflows/ci.yml`. After the repository is pushed to GitHub, check the Actions tab for the `CI` workflow status. The workflow validates:
 
 - backend tests
-- Alembic migration upgrade, downgrade, and upgrade
+- Alembic migration upgrade, downgrade, and upgrade against SQLite
+- Alembic migration upgrade, downgrade, and upgrade against PostgreSQL
 - frontend typecheck and build
 - Docker Compose configuration syntax
 

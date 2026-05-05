@@ -10,7 +10,4 @@ def coerce_uuid(value) -> uuid.UUID:
 def coerce_optional_uuid(value) -> uuid.UUID | None:
     if value in (None, ""):
         return None
-    try:
-        return coerce_uuid(value)
-    except (TypeError, ValueError):
-        return None
+    return coerce_uuid(value)

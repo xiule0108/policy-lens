@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 import uuid
 
-from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, Integer, Numeric, Text
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, Index, Integer, Numeric, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, GUID, JSONBCompatible, utc_now
@@ -41,6 +41,10 @@ class Project(Base):
 
 class Document(Base):
     __tablename__ = "documents"
+    __table_args__ = (
+        Index("ix_documents_project_id", "project_id"),
+        Index("ix_documents_project_role", "project_id", "document_role"),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     project_id: Mapped[uuid.UUID] = mapped_column(GUID(), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
@@ -65,6 +69,11 @@ class Document(Base):
 
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
+    __table_args__ = (
+        Index("ix_document_chunks_document_id", "document_id"),
+        Index("ix_document_chunks_project_id", "project_id"),
+        Index("ix_document_chunks_document_index", "document_id", "chunk_index"),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     document_id: Mapped[uuid.UUID] = mapped_column(GUID(), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
@@ -84,6 +93,13 @@ class DocumentChunk(Base):
 
 class Policy(Base):
     __tablename__ = "policies"
+    __table_args__ = (
+        Index("ix_policies_jurisdiction", "jurisdiction"),
+        Index("ix_policies_policy_type", "policy_type"),
+        Index("ix_policies_publish_date", "publish_date"),
+        Index("ix_policies_normalized_title", "normalized_title"),
+        Index("ix_policies_sha256", "sha256"),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     source_id: Mapped[uuid.UUID | None] = mapped_column(GUID())
@@ -109,6 +125,10 @@ class Policy(Base):
 
 class PolicyVersion(Base):
     __tablename__ = "policy_versions"
+    __table_args__ = (
+        Index("ix_policy_versions_policy_id", "policy_id"),
+        Index("ix_policy_versions_current", "policy_id", "is_current"),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     policy_id: Mapped[uuid.UUID] = mapped_column(GUID(), ForeignKey("policies.id", ondelete="CASCADE"), nullable=False)
@@ -127,6 +147,11 @@ class PolicyVersion(Base):
 
 class PolicySection(Base):
     __tablename__ = "policy_sections"
+    __table_args__ = (
+        Index("ix_policy_sections_policy_id", "policy_id"),
+        Index("ix_policy_sections_version_id", "version_id"),
+        Index("ix_policy_sections_policy_order", "policy_id", "order_index"),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     policy_id: Mapped[uuid.UUID] = mapped_column(GUID(), ForeignKey("policies.id", ondelete="CASCADE"), nullable=False)
@@ -145,6 +170,10 @@ class PolicySection(Base):
 
 class Claim(Base):
     __tablename__ = "claims"
+    __table_args__ = (
+        Index("ix_claims_project_id", "project_id"),
+        Index("ix_claims_document_id", "document_id"),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     project_id: Mapped[uuid.UUID] = mapped_column(GUID(), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
@@ -161,6 +190,12 @@ class Claim(Base):
 
 class PolicyMatch(Base):
     __tablename__ = "policy_matches"
+    __table_args__ = (
+        Index("ix_policy_matches_project_id", "project_id"),
+        Index("ix_policy_matches_claim_id", "claim_id"),
+        Index("ix_policy_matches_policy_id", "policy_id"),
+        Index("ix_policy_matches_section_id", "policy_section_id"),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     project_id: Mapped[uuid.UUID] = mapped_column(GUID(), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
@@ -177,6 +212,10 @@ class PolicyMatch(Base):
 
 class ImpactItem(Base):
     __tablename__ = "impact_items"
+    __table_args__ = (
+        Index("ix_impact_items_project_id", "project_id"),
+        Index("ix_impact_items_policy_id", "policy_id"),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     project_id: Mapped[uuid.UUID] = mapped_column(GUID(), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
@@ -195,6 +234,10 @@ class ImpactItem(Base):
 
 class AnalysisJob(Base):
     __tablename__ = "analysis_jobs"
+    __table_args__ = (
+        Index("ix_analysis_jobs_project_id", "project_id"),
+        Index("ix_analysis_jobs_project_status", "project_id", "status"),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     project_id: Mapped[uuid.UUID] = mapped_column(GUID(), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
@@ -211,6 +254,10 @@ class AnalysisJob(Base):
 
 class AnalysisStep(Base):
     __tablename__ = "analysis_steps"
+    __table_args__ = (
+        Index("ix_analysis_steps_job_id", "job_id"),
+        Index("ix_analysis_steps_job_step", "job_id", "step_id"),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     job_id: Mapped[uuid.UUID] = mapped_column(GUID(), ForeignKey("analysis_jobs.id", ondelete="CASCADE"), nullable=False)
@@ -245,6 +292,10 @@ class AnalysisResult(Base):
 
 class Export(Base):
     __tablename__ = "exports"
+    __table_args__ = (
+        Index("ix_exports_project_id", "project_id"),
+        Index("ix_exports_project_status", "project_id", "status"),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     project_id: Mapped[uuid.UUID | None] = mapped_column(GUID(), ForeignKey("projects.id", ondelete="CASCADE"))

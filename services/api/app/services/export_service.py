@@ -31,14 +31,30 @@ def create_policy_original_export(
             },
         )
     export_id = str(db_export.id) if db_export is not None else f"export_{uuid4().hex[:8]}"
-    result = create_mock_policy_export_bundle(
-        export_id=export_id,
-        mode=payload.mode,
-        policy_ids=payload.policy_ids,
-        cited_section_ids=payload.cited_section_ids,
-        output_root=Path(settings.storage_dir),
-        include_snapshots=payload.include_snapshots,
-    )
+    try:
+        result = create_mock_policy_export_bundle(
+            export_id=export_id,
+            mode=payload.mode,
+            policy_ids=payload.policy_ids,
+            cited_section_ids=payload.cited_section_ids,
+            output_root=Path(settings.storage_dir),
+            include_snapshots=payload.include_snapshots,
+        )
+    except Exception as exc:
+        if session is not None and db_export is not None:
+            update_export_status(
+                session,
+                db_export.id,
+                "failed",
+                manifest={
+                    **(db_export.manifest or {}),
+                    "error": {
+                        "type": exc.__class__.__name__,
+                        "message": str(exc),
+                    },
+                },
+            )
+        raise
     if session is not None and db_export is not None:
         db_export = update_export_status(
             session,

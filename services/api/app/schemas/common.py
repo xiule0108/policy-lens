@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -147,7 +148,7 @@ class AnalysisJob(BaseModel):
 
 
 class PolicyOriginalExportRequest(BaseModel):
-    project_id: str | None = None
+    project_id: UUID | None = None
     policy_ids: list[str] = Field(default_factory=list)
     cited_section_ids: list[str] = Field(default_factory=list)
     mode: ExportMode = "related_policy_bundle"

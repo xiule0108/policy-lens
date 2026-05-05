@@ -57,6 +57,8 @@ Validate Compose syntax without starting services:
 docker compose config
 ```
 
+CI validates Alembic upgrade, downgrade, and upgrade again against both the local SQLite check database and a real PostgreSQL service container.
+
 To inspect migration state inside the API container:
 
 ```bash

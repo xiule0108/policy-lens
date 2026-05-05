@@ -35,6 +35,39 @@ def metadata_column() -> sa.Column:
     return sa.Column("metadata", json_type(), nullable=False, server_default=sa.text("'{}'"))
 
 
+INDEXES = (
+    ("ix_documents_project_id", "documents", ["project_id"]),
+    ("ix_documents_project_role", "documents", ["project_id", "document_role"]),
+    ("ix_document_chunks_document_id", "document_chunks", ["document_id"]),
+    ("ix_document_chunks_project_id", "document_chunks", ["project_id"]),
+    ("ix_document_chunks_document_index", "document_chunks", ["document_id", "chunk_index"]),
+    ("ix_policies_jurisdiction", "policies", ["jurisdiction"]),
+    ("ix_policies_policy_type", "policies", ["policy_type"]),
+    ("ix_policies_publish_date", "policies", ["publish_date"]),
+    ("ix_policies_normalized_title", "policies", ["normalized_title"]),
+    ("ix_policies_sha256", "policies", ["sha256"]),
+    ("ix_policy_versions_policy_id", "policy_versions", ["policy_id"]),
+    ("ix_policy_versions_current", "policy_versions", ["policy_id", "is_current"]),
+    ("ix_policy_sections_policy_id", "policy_sections", ["policy_id"]),
+    ("ix_policy_sections_version_id", "policy_sections", ["version_id"]),
+    ("ix_policy_sections_policy_order", "policy_sections", ["policy_id", "order_index"]),
+    ("ix_claims_project_id", "claims", ["project_id"]),
+    ("ix_claims_document_id", "claims", ["document_id"]),
+    ("ix_policy_matches_project_id", "policy_matches", ["project_id"]),
+    ("ix_policy_matches_claim_id", "policy_matches", ["claim_id"]),
+    ("ix_policy_matches_policy_id", "policy_matches", ["policy_id"]),
+    ("ix_policy_matches_section_id", "policy_matches", ["policy_section_id"]),
+    ("ix_impact_items_project_id", "impact_items", ["project_id"]),
+    ("ix_impact_items_policy_id", "impact_items", ["policy_id"]),
+    ("ix_analysis_jobs_project_id", "analysis_jobs", ["project_id"]),
+    ("ix_analysis_jobs_project_status", "analysis_jobs", ["project_id", "status"]),
+    ("ix_analysis_steps_job_id", "analysis_steps", ["job_id"]),
+    ("ix_analysis_steps_job_step", "analysis_steps", ["job_id", "step_id"]),
+    ("ix_exports_project_id", "exports", ["project_id"]),
+    ("ix_exports_project_status", "exports", ["project_id", "status"]),
+)
+
+
 def upgrade() -> None:
     op.create_table(
         "projects",
@@ -267,8 +300,14 @@ def upgrade() -> None:
         timestamp_column("created_at"),
     )
 
+    for index_name, table_name, columns in INDEXES:
+        op.create_index(index_name, table_name, columns)
+
 
 def downgrade() -> None:
+    for index_name, table_name, _columns in reversed(INDEXES):
+        op.drop_index(index_name, table_name=table_name)
+
     for table_name in (
         "impact_items",
         "policy_matches",
