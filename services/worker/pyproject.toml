@@ -1,0 +1,17 @@
+[project]
+name = "policylens-worker"
+version = "0.1.0"
+description = "Python worker skeleton for PolicyLens."
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2.8.0,<3.0.0",
+  "pydantic-settings>=2.4.0,<3.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=69.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
