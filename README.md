@@ -144,6 +144,29 @@ pending -> parsing -> failed
 
 Successful parses write deterministic chunks into `document_chunks` with sequential `chunk_index`, page and section metadata when available, rough `token_count`, and `metadata.parse_summary` on the document. Re-parsing deletes old chunks before writing the new set. `GET /api/documents/{document_id}/chunks` returns stored chunks with `limit` and `offset`. Chunk size defaults to `CHUNK_MAX_CHARS=2000`.
 
+## Policy Library
+
+`POST /api/policies/from-document` ingests an already parsed `document_role=policy` document into the local policy library. The source document must have `parse_status=parsed`, a `storage_key`, and at least one `document_chunks` row.
+
+Ingestion creates:
+
+- `policies`: policy metadata such as title, issuer, jurisdiction, type, dates, status, source URL, and source document sha256
+- `policy_versions`: current policy text assembled from document chunks, with normalized text sha256 and source document metadata
+- `policy_sections`: one section per source chunk, preserving source chunk id, chunk index, page range, section title, content type, and token estimate
+
+The policy library API is database-backed:
+
+- `GET /api/policies`
+- `POST /api/policies/search`
+- `GET /api/policies/{policy_id}`
+- `GET /api/policies/{policy_id}/versions`
+- `GET /api/policies/{policy_id}/sections`
+- `GET /api/policies/{policy_id}/original`
+
+Repeated ingestion of the same document returns the existing policy/version by default. Set `force_new_version=true` to create a new current version for the same policy and mark older versions as not current.
+
+This local policy library does not crawl policy sources, judge legal validity, run policy relevance analysis, call LLMs, or create ZIP export bundles. ZIP policy original export is planned for the next export task.
+
 ## CI Status
 
 GitHub Actions CI is defined in `.github/workflows/ci.yml`. After the repository is pushed to GitHub, check the Actions tab for the `CI` workflow status. The workflow validates:

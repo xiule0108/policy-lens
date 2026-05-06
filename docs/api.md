@@ -68,10 +68,44 @@ Chunking uses deterministic block order, filters empty text, splits long blocks 
 
 ## Policies
 
+- `POST /api/policies/from-document`
 - `GET /api/policies`
 - `POST /api/policies/search`
+- `GET /api/policies/{policy_id}`
+- `GET /api/policies/{policy_id}/versions`
+- `GET /api/policies/{policy_id}/sections`
+- `GET /api/policies/{policy_id}/original`
 
-Policy search returns mock policies with source and sha256 fields. Future implementation should combine keyword search, vector search, reranking, and policy source connectors.
+`POST /api/policies/from-document` creates local policy library records from a parsed policy document. Requirements:
+
+- source document exists
+- `document_role=policy`
+- `parse_status=parsed`
+- `storage_key` is present
+- at least one `document_chunks` row exists
+
+The request accepts policy metadata such as `title`, `issuer`, `issuer_level`, `jurisdiction`, `policy_type`, policy dates, `status`, `version_label`, optional target `policy_id`, and `force_new_version`.
+
+Behavior:
+
+- Without `policy_id`, ingestion creates a new `policies` row, one current `policy_versions` row, and `policy_sections` copied from document chunks.
+- With `policy_id`, ingestion creates a new current version for the existing policy and marks older versions as not current.
+- If the same document has already been ingested, the API returns the existing ingestion result by default.
+- If `force_new_version=true`, the API creates a new current version for the same policy.
+
+`GET /api/policies` returns database policies and supports `query`, `jurisdiction`, `issuer`, `policy_type`, `status`, `limit`, and `offset`.
+
+`POST /api/policies/search` searches database policies by keyword. This is a simple SQL-backed search surface for v0.1, not RAG, embeddings, Qdrant, or reranking.
+
+`GET /api/policies/{policy_id}` returns policy metadata plus `current_version_id`.
+
+`GET /api/policies/{policy_id}/versions` returns policy versions ordered by capture time descending.
+
+`GET /api/policies/{policy_id}/sections` returns the current version's sections by default. Pass `version_id` to inspect a specific version.
+
+`GET /api/policies/{policy_id}/original` returns the current version's normalized policy text and metadata for viewing. It does not create a ZIP export bundle.
+
+This task does not crawl policies, judge policy legal validity, perform policy relevance analysis, or export original policy ZIP files.
 
 ## Analysis
 
@@ -110,6 +144,13 @@ The following API surfaces have light database integration:
 - `GET /api/llm/providers`
 - `POST /api/llm/providers`
 - `POST /api/exports/policy-originals`
+- `GET /api/policies`
+- `POST /api/policies/from-document`
+- `POST /api/policies/search`
+- `GET /api/policies/{policy_id}`
+- `GET /api/policies/{policy_id}/versions`
+- `GET /api/policies/{policy_id}/sections`
+- `GET /api/policies/{policy_id}/original`
 - `GET /api/documents`
 - `POST /api/documents/upload`
 - `GET /api/documents/{document_id}`
