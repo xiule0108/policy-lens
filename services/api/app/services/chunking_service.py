@@ -11,6 +11,8 @@ def estimate_token_count(text: str) -> int:
 
 
 def split_text(text: str, max_chars: int) -> list[str]:
+    if max_chars <= 0:
+        raise ValueError("max_chars must be greater than 0.")
     clean_text = text.strip()
     if not clean_text:
         return []

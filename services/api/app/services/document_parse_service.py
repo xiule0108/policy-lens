@@ -78,7 +78,7 @@ def parse_document_by_id(session: Session, document_id: UUID) -> ParseDocumentRe
         fail_document_parse(session, document_id, exc)
         raise exc
 
-    update_document_after_parse(session, document_id, parse_status="parsing")
+    update_document_after_parse(session, document_id, parse_status="parsing", metadata_remove_keys=["parse_error"])
 
     try:
         parsed = parse_document_file(file_path, document.file_type)
@@ -99,6 +99,7 @@ def parse_document_by_id(session: Session, document_id: UUID) -> ParseDocumentRe
             title=parsed.title,
             language=parsed.language,
             page_count=parsed.page_count,
+            metadata_remove_keys=["parse_error"],
             metadata_patch={
                 "parse_summary": {
                     **parsed.metadata,

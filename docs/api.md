@@ -57,7 +57,7 @@ Parser status values:
 - `parsed`: chunks were written to `document_chunks`
 - `failed`: parsing failed and `metadata.parse_error` contains a short error summary
 
-Successful parsing updates `documents.language`, `documents.page_count`, and `metadata.parse_summary`. The basic language detector only distinguishes likely `zh-CN`, likely `en`, or unknown.
+Successful parsing updates `documents.language`, `documents.page_count`, and `metadata.parse_summary`, and clears any previous `metadata.parse_error`. Failed parsing records a short `metadata.parse_error` summary. The basic language detector only distinguishes likely `zh-CN`, likely `en`, or unknown.
 
 `GET /api/documents/{document_id}/chunks?limit=200&offset=0` returns:
 

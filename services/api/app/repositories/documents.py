@@ -73,6 +73,7 @@ def update_document_after_parse(
     language: str | None = None,
     page_count: int | None = None,
     metadata_patch: dict | None = None,
+    metadata_remove_keys: list[str] | None = None,
 ) -> Document | None:
     document = get_document(session, document_id)
     if document is None:
@@ -84,11 +85,12 @@ def update_document_after_parse(
         document.language = language
     if page_count is not None:
         document.page_count = page_count
+    metadata = dict(document.metadata_ or {})
+    for key in metadata_remove_keys or []:
+        metadata.pop(key, None)
     if metadata_patch:
-        document.metadata_ = {
-            **(document.metadata_ or {}),
-            **metadata_patch,
-        }
+        metadata.update(metadata_patch)
+    document.metadata_ = metadata
     session.commit()
     session.refresh(document)
     return document

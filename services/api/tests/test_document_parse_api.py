@@ -53,7 +53,12 @@ def test_parse_uploaded_txt_document_creates_chunks_and_updates_status(tmp_path,
 
     detail_response = client.get(f"/api/documents/{document_id}")
     assert detail_response.status_code == 200
-    assert detail_response.json()["parse_status"] == "parsed"
+    detail_payload = detail_response.json()
+    assert detail_payload["parse_status"] == "parsed"
+    assert detail_payload["metadata"]["content_type"] == "text/plain"
+    assert detail_payload["metadata"]["original_filename"] == "memo.txt"
+    assert detail_payload["metadata"]["safe_filename"] == "memo.txt"
+    assert detail_payload["metadata"]["parse_summary"]["chunk_count"] == parse_payload["chunk_count"]
 
     chunks_response = client.get(f"/api/documents/{document_id}/chunks")
     assert chunks_response.status_code == 200
@@ -171,3 +176,47 @@ def test_parse_empty_text_returns_422_and_records_error(tmp_path, monkeypatch, d
     document_after = get_document(db_session, document.id)
     assert document_after.parse_status == "failed"
     assert "parse_error" in document_after.metadata_
+
+
+def test_successful_reparse_clears_previous_parse_error(tmp_path, monkeypatch, db_session) -> None:
+    monkeypatch.setattr(settings, "storage_dir", str(tmp_path))
+    project = create_project(db_session, {"name": "Reparse workspace"})
+    file_path = tmp_path / "documents" / str(project.id) / "doc" / "memo.txt"
+    file_path.parent.mkdir(parents=True)
+    file_path.write_text("   \n", encoding="utf-8")
+    document = create_document(
+        db_session,
+        {
+            "project_id": project.id,
+            "document_role": "research_article",
+            "file_name": "memo.txt",
+            "file_type": ".txt",
+            "storage_key": f"documents/{project.id}/doc/memo.txt",
+            "metadata": {
+                "content_type": "text/plain",
+                "original_filename": "memo.txt",
+                "safe_filename": "memo.txt",
+            },
+        },
+    )
+
+    failed_response = client.post(f"/api/documents/{document.id}/parse")
+
+    assert failed_response.status_code == 422
+    db_session.expire_all()
+    failed_document = get_document(db_session, document.id)
+    assert failed_document.parse_status == "failed"
+    assert "parse_error" in failed_document.metadata_
+
+    file_path.write_text("Valid policy text for parsing.", encoding="utf-8")
+    parsed_response = client.post(f"/api/documents/{document.id}/parse")
+
+    assert parsed_response.status_code == 200
+    db_session.expire_all()
+    parsed_document = get_document(db_session, document.id)
+    assert parsed_document.parse_status == "parsed"
+    assert "parse_error" not in parsed_document.metadata_
+    assert "parse_summary" in parsed_document.metadata_
+    assert parsed_document.metadata_["content_type"] == "text/plain"
+    assert parsed_document.metadata_["original_filename"] == "memo.txt"
+    assert parsed_document.metadata_["safe_filename"] == "memo.txt"

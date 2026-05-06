@@ -1,4 +1,6 @@
-from app.services.chunking_service import build_document_chunks, estimate_token_count
+import pytest
+
+from app.services.chunking_service import build_document_chunks, estimate_token_count, split_text
 from app.services.document_parser import ParsedBlock
 
 
@@ -64,3 +66,18 @@ def test_empty_blocks_are_filtered() -> None:
 
     assert len(chunks) == 1
     assert chunks[0]["content"] == "Useful text"
+
+
+def test_split_text_rejects_non_positive_max_chars() -> None:
+    with pytest.raises(ValueError, match="max_chars must be greater than 0"):
+        split_text("hello", max_chars=0)
+
+
+def test_build_document_chunks_rejects_non_positive_max_chars() -> None:
+    with pytest.raises(ValueError, match="max_chars must be greater than 0"):
+        build_document_chunks(
+            document_id="document-1",
+            project_id="project-1",
+            blocks=[ParsedBlock(text="hello", content_type="paragraph")],
+            max_chars=0,
+        )
