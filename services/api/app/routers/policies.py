@@ -28,6 +28,7 @@ from app.schemas.common import (
     PolicyVersionResponse,
 )
 from app.services.policy_ingestion_service import (
+    PolicyDocumentAlreadyIngestedConflictError,
     PolicyDocumentNoChunksError,
     PolicyDocumentNotFoundError,
     PolicyDocumentNotParsedError,
@@ -110,6 +111,8 @@ def create_policy_from_document(
         raise HTTPException(status_code=409, detail="Document role must be policy.") from exc
     except PolicyDocumentNotParsedError as exc:
         raise HTTPException(status_code=409, detail="Policy document must be parsed before ingestion.") from exc
+    except PolicyDocumentAlreadyIngestedConflictError as exc:
+        raise HTTPException(status_code=409, detail="Document has already been ingested into a different policy.") from exc
     except (PolicyDocumentNoChunksError, PolicyDocumentStorageError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except PolicyNotFoundError as exc:
@@ -153,11 +156,13 @@ def list_policy_records(
 
 @router.post("/search", response_model=PolicySearchResponse)
 def search_policies(payload: PolicySearchRequest, session: Session = Depends(get_session)) -> PolicySearchResponse:
-    policies = search_policies_by_keyword(session, payload.query, limit=payload.limit)
-    if payload.jurisdictions:
-        policies = [policy for policy in policies if policy.jurisdiction in payload.jurisdictions]
-    if payload.policy_types:
-        policies = [policy for policy in policies if policy.policy_type in payload.policy_types]
+    policies = search_policies_by_keyword(
+        session,
+        payload.query,
+        jurisdictions=payload.jurisdictions,
+        policy_types=payload.policy_types,
+        limit=payload.limit,
+    )
     return PolicySearchResponse(
         query=payload.query,
         total=len(policies),

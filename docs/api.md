@@ -95,7 +95,7 @@ Behavior:
 
 `GET /api/policies` returns database policies and supports `query`, `jurisdiction`, `issuer`, `policy_type`, `status`, `limit`, and `offset`.
 
-`POST /api/policies/search` searches database policies by keyword. This is a simple SQL-backed search surface for v0.1, not RAG, embeddings, Qdrant, or reranking.
+`POST /api/policies/search` searches database policies by keyword. `jurisdictions` and `policy_types` are applied in the database query before `limit`, so filtered results are not dropped by an earlier broad keyword cap. This is a simple SQL-backed search surface for v0.1, not RAG, embeddings, Qdrant, or reranking.
 
 `GET /api/policies/{policy_id}` returns policy metadata plus `current_version_id`.
 

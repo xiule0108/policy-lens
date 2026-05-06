@@ -24,8 +24,17 @@ def upload_policy_document(project_id: str, *, role: str = "policy", content: by
     )
 
 
-def create_parsed_policy_document(project_id: str) -> str:
-    upload_response = upload_policy_document(project_id)
+def create_parsed_policy_document(
+    project_id: str,
+    *,
+    title: str = "Uploaded policy",
+    content: bytes = b"# Policy title\n\nSupport clean energy.",
+) -> str:
+    upload_response = client.post(
+        "/api/documents/upload",
+        data={"project_id": project_id, "document_role": "policy", "title": title},
+        files={"file": ("policy.md", content, "text/markdown")},
+    )
     assert upload_response.status_code == 201
     document_id = upload_response.json()["id"]
     parse_response = client.post(f"/api/documents/{document_id}/parse")
@@ -101,6 +110,69 @@ def test_policy_library_api_full_flow(tmp_path, monkeypatch) -> None:
     assert forced_response.json()["policy_id"] == policy_id
     assert forced_response.json()["version_id"] != ingest_payload["version_id"]
     assert len(client.get(f"/api/policies/{policy_id}/versions").json()["items"]) == 2
+
+
+def test_policy_library_api_rejects_rebinding_ingested_document(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "storage_dir", str(tmp_path))
+    project_id = create_project()
+    first_document_id = create_parsed_policy_document(project_id, title="First policy")
+    first_ingest = client.post("/api/policies/from-document", json={"document_id": first_document_id})
+    assert first_ingest.status_code == 201
+
+    second_document_id = create_parsed_policy_document(project_id, title="Second policy")
+    second_ingest = client.post("/api/policies/from-document", json={"document_id": second_document_id})
+    assert second_ingest.status_code == 201
+    second_policy_id = second_ingest.json()["policy_id"]
+
+    conflict_response = client.post(
+        "/api/policies/from-document",
+        json={"document_id": first_document_id, "policy_id": second_policy_id, "force_new_version": True},
+    )
+
+    assert conflict_response.status_code == 409
+
+
+def test_policy_search_applies_filters_before_limit(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "storage_dir", str(tmp_path))
+    project_id = create_project()
+    china_document_id = create_parsed_policy_document(
+        project_id,
+        title="China energy policy",
+        content=b"# Energy transition policy\n\nChina clean energy text.",
+    )
+    china_ingest = client.post(
+        "/api/policies/from-document",
+        json={
+            "document_id": china_document_id,
+            "jurisdiction": "China",
+            "policy_type": "notice",
+        },
+    )
+    assert china_ingest.status_code == 201
+    china_policy_id = china_ingest.json()["policy_id"]
+
+    eu_document_id = create_parsed_policy_document(
+        project_id,
+        title="EU energy policy",
+        content=b"# Energy transition policy\n\nEU clean energy text.",
+    )
+    eu_ingest = client.post(
+        "/api/policies/from-document",
+        json={
+            "document_id": eu_document_id,
+            "jurisdiction": "EU",
+            "policy_type": "memo",
+        },
+    )
+    assert eu_ingest.status_code == 201
+
+    search_response = client.post(
+        "/api/policies/search",
+        json={"query": "Energy", "jurisdictions": ["China"], "policy_types": ["notice"], "limit": 1},
+    )
+
+    assert search_response.status_code == 200
+    assert [item["id"] for item in search_response.json()["items"]] == [china_policy_id]
 
 
 def test_policy_library_api_errors(tmp_path, monkeypatch) -> None:

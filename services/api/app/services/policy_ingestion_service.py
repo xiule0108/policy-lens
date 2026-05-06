@@ -42,6 +42,10 @@ class PolicyDocumentStorageError(PolicyIngestionError):
     """Raised when a policy document has no storage key."""
 
 
+class PolicyDocumentAlreadyIngestedConflictError(PolicyIngestionError):
+    """Raised when an ingested document is requested for a different policy."""
+
+
 class PolicyNotFoundError(PolicyIngestionError):
     """Raised when a requested target policy does not exist."""
 
@@ -80,6 +84,17 @@ def build_normalized_text(chunks) -> str:
 def get_existing_ingestion(document: Document) -> dict | None:
     ingestion = (document.metadata_ or {}).get("policy_ingestion")
     return ingestion if isinstance(ingestion, dict) else None
+
+
+def ensure_existing_ingestion_policy_matches_request(
+    existing_ingestion: dict | None,
+    request: PolicyCreateFromDocumentRequest,
+) -> None:
+    existing_policy_id = (existing_ingestion or {}).get("policy_id")
+    if existing_policy_id and request.policy_id and str(request.policy_id) != str(existing_policy_id):
+        raise PolicyDocumentAlreadyIngestedConflictError(
+            "Document has already been ingested into a different policy."
+        )
 
 
 def existing_ingestion_result(
@@ -268,6 +283,7 @@ def ingest_policy_from_document(
 ) -> PolicyIngestionResult:
     document, chunks = validate_policy_document(session, request.document_id)
     existing_ingestion = get_existing_ingestion(document)
+    ensure_existing_ingestion_policy_matches_request(existing_ingestion, request)
     if existing_ingestion and not request.force_new_version:
         existing_result = existing_ingestion_result(session, document, existing_ingestion)
         if existing_result is not None:

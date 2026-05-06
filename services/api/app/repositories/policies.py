@@ -73,22 +73,32 @@ def list_policies(
     return list(session.scalars(statement))
 
 
-def search_policies_by_keyword(session: Session, query: str, limit: int = 20) -> list[Policy]:
-    if not query.strip():
-        return list_policies(session, limit=limit)
-    like_query = f"%{query.strip()}%"
-    statement = (
-        select(Policy)
-        .where(
+def search_policies_by_keyword(
+    session: Session,
+    query: str,
+    *,
+    jurisdictions: list[str] | None = None,
+    policy_types: list[str] | None = None,
+    limit: int = 20,
+) -> list[Policy]:
+    statement = select(Policy).order_by(Policy.created_at.desc()).limit(limit)
+    if query.strip():
+        like_query = f"%{query.strip()}%"
+        statement = statement.where(
             or_(
                 Policy.title.ilike(like_query),
                 Policy.normalized_title.ilike(like_query),
                 Policy.issuer.ilike(like_query),
+                Policy.jurisdiction.ilike(like_query),
+                Policy.policy_type.ilike(like_query),
             )
         )
-        .order_by(Policy.created_at.desc())
-        .limit(limit)
-    )
+    jurisdictions = [value for value in jurisdictions or [] if value]
+    policy_types = [value for value in policy_types or [] if value]
+    if jurisdictions:
+        statement = statement.where(Policy.jurisdiction.in_(jurisdictions))
+    if policy_types:
+        statement = statement.where(Policy.policy_type.in_(policy_types))
     return list(session.scalars(statement))
 
 

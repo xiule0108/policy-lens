@@ -8,6 +8,7 @@ from app.repositories.policy_versions import get_current_policy_version, list_po
 from app.repositories.projects import create_project
 from app.schemas.common import PolicyCreateFromDocumentRequest
 from app.services.policy_ingestion_service import (
+    PolicyDocumentAlreadyIngestedConflictError,
     PolicyDocumentNoChunksError,
     PolicyDocumentNotParsedError,
     PolicyDocumentRoleError,
@@ -135,6 +136,24 @@ def test_force_new_version_creates_current_version_and_marks_old_not_current(db_
     assert second.version_id != first.version_id
     assert str(get_current_policy_version(db_session, first.policy_id).id) == second.version_id
     assert [version.is_current for version in versions] == [True, False]
+
+
+def test_ingested_document_cannot_be_rebound_to_another_policy(db_session) -> None:
+    document = create_policy_document(db_session)
+    first = ingest_policy_from_document(db_session, PolicyCreateFromDocumentRequest(document_id=document.id))
+    other_policy = create_policy(db_session, {"title": "Another policy"})
+
+    assert str(other_policy.id) != first.policy_id
+    for force_new_version in (False, True):
+        with pytest.raises(PolicyDocumentAlreadyIngestedConflictError):
+            ingest_policy_from_document(
+                db_session,
+                PolicyCreateFromDocumentRequest(
+                    document_id=document.id,
+                    policy_id=other_policy.id,
+                    force_new_version=force_new_version,
+                ),
+            )
 
 
 def test_ingest_rejects_non_policy_pending_no_chunks_and_missing_policy(db_session) -> None:

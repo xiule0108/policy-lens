@@ -48,6 +48,39 @@ def test_policy_repository_filters_and_updates(db_session) -> None:
     assert updated.issuer_level == "national"
 
 
+def test_policy_search_filters_before_limit(db_session) -> None:
+    target = create_policy(
+        db_session,
+        {
+            "title": "Energy transition policy",
+            "issuer": "National Energy Office",
+            "jurisdiction": "China",
+            "policy_type": "notice",
+            "status": "active",
+        },
+    )
+    create_policy(
+        db_session,
+        {
+            "title": "Energy transition policy",
+            "issuer": "EU Commission",
+            "jurisdiction": "EU",
+            "policy_type": "memo",
+            "status": "active",
+        },
+    )
+
+    results = search_policies_by_keyword(
+        db_session,
+        "Energy",
+        jurisdictions=["China"],
+        policy_types=["notice"],
+        limit=1,
+    )
+
+    assert [policy.id for policy in results] == [target.id]
+
+
 def test_policy_versions_and_sections_repository(db_session) -> None:
     policy = create_policy(db_session, {"title": "Policy with versions"})
     first_version = create_policy_version(
