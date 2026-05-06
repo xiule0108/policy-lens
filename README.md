@@ -18,13 +18,14 @@ PolicyLens 是一个开源的政策与市场研究解析工作台。项目面向
 当前提交提供可运行工程骨架和数据库基础设施：
 
 - Next.js 前端页面使用 mock 数据
-- FastAPI API 提供 mock 业务结构，并已轻度接入 projects、exports、LLM user providers 的数据库持久化
+- FastAPI API 提供 mock 业务结构，并已轻度接入 projects、documents、document_chunks、exports、LLM user providers 的数据库持久化
 - PostgreSQL schema、SQLAlchemy models、Alembic migration 和 repository 层已经建立
-- Qdrant、worker 和本地存储仍以服务预留为主
+- 本地文件上传、基础文档解析和 chunk 入库已经跑通
+- Qdrant 和 worker 仍以服务预留为主
 - LLM Gateway 只完成 Provider 配置和测试接口骨架
 - 政策原文导出只完成 bundle 目录结构和 manifest skeleton
 
-当前提交暂未实现真实文件解析、完整检索、rerank、向量化、真实模型调用、报告生成和生产级任务队列；这些属于 v0.1 release roadmap。权限系统和政策来源自动抓取可后续迭代。
+当前提交暂未实现 OCR、完整检索、rerank、向量化、真实模型调用、报告生成和生产级任务队列；这些属于 v0.1 release roadmap。权限系统和政策来源自动抓取可后续迭代。
 
 ## Tech Stack
 
@@ -63,6 +64,7 @@ Configure local upload storage when needed:
 export STORAGE_DIR=./storage
 export MAX_UPLOAD_SIZE_MB=50
 export ALLOWED_UPLOAD_EXTENSIONS=.pdf,.docx,.txt,.md,.markdown,.html,.htm
+export CHUNK_MAX_CHARS=2000
 ```
 
 Start the web app locally:
@@ -125,9 +127,22 @@ Uploaded files are stored under the configured `STORAGE_DIR` using this relative
 documents/{project_id}/{document_id}/{safe_filename}
 ```
 
-The API stores only the relative `storage_key` in the database, along with file size, file type, content type metadata, source URL, sha256, and `parse_status=pending`. Parsing is reserved for the next v0.1 task.
+The API stores only the relative `storage_key` in the database, along with file size, file type, content type metadata, source URL, sha256, and `parse_status=pending`.
 
 Uploads support Unicode filenames, including Chinese policy filenames. The server stores a safe filename for local storage and keeps `metadata.original_filename` plus `metadata.safe_filename` on the document record.
+
+## Document Parsing
+
+`POST /api/documents/{document_id}/parse` synchronously runs the v0.1 basic parser for uploaded `.txt`, `.md`, `.markdown`, `.html`, `.htm`, `.docx`, and searchable `.pdf` files. It does not run OCR, so scanned PDFs without extractable text return a parse failure.
+
+Parsing moves documents through these statuses:
+
+```text
+pending -> parsing -> parsed
+pending -> parsing -> failed
+```
+
+Successful parses write deterministic chunks into `document_chunks` with sequential `chunk_index`, page and section metadata when available, rough `token_count`, and `metadata.parse_summary` on the document. Re-parsing deletes old chunks before writing the new set. `GET /api/documents/{document_id}/chunks` returns stored chunks with `limit` and `offset`. Chunk size defaults to `CHUNK_MAX_CHARS=2000`.
 
 ## CI Status
 

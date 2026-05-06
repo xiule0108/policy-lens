@@ -24,6 +24,7 @@ Upload-related environment defaults:
 STORAGE_DIR=./storage
 MAX_UPLOAD_SIZE_MB=50
 ALLOWED_UPLOAD_EXTENSIONS=.pdf,.docx,.txt,.md,.markdown,.html,.htm
+CHUNK_MAX_CHARS=2000
 ```
 
 ## API Setup
@@ -83,7 +84,9 @@ Document uploads are stored on the local filesystem for v0.1. The API writes fil
 documents/{project_id}/{document_id}/{safe_filename}
 ```
 
-`POST /api/documents/upload` keeps `parse_status=pending`; parsing and chunking are handled by later tasks.
+`POST /api/documents/upload` creates records with `parse_status=pending`. Run `POST /api/documents/{document_id}/parse` to parse uploaded `.txt`, `.md`, `.markdown`, `.html`, `.htm`, `.docx`, or searchable `.pdf` files and write `document_chunks`.
+
+The v0.1 basic parser does not run OCR. Scanned PDFs or files with no extractable text move to `parse_status=failed` and store a short error summary in `metadata.parse_error`.
 
 ## Migration Checks
 

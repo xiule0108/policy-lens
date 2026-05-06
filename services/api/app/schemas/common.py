@@ -118,6 +118,36 @@ class DocumentListResponse(BaseModel):
     items: list[DocumentResponse]
 
 
+class DocumentParseResponse(BaseModel):
+    document_id: str
+    parse_status: str
+    chunk_count: int
+    page_count: int | None = None
+    language: str | None = None
+    title: str | None = None
+    error: str | None = None
+
+
+class DocumentChunkResponse(BaseModel):
+    id: str
+    document_id: str
+    project_id: str
+    chunk_index: int
+    page_start: int | None = None
+    page_end: int | None = None
+    section_title: str | None = None
+    content: str
+    content_type: str
+    token_count: int | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+
+
+class DocumentChunkListResponse(BaseModel):
+    items: list[DocumentChunkResponse]
+    total: int
+
+
 class Policy(BaseModel):
     id: str
     title: str

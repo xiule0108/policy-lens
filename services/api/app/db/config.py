@@ -14,6 +14,7 @@ class Settings(BaseSettings):
         default=".pdf,.docx,.txt,.md,.markdown,.html,.htm",
         alias="ALLOWED_UPLOAD_EXTENSIONS",
     )
+    chunk_max_chars: int = Field(default=2000, ge=1, alias="CHUNK_MAX_CHARS")
     default_model_profile: str = Field(default="china_balanced", alias="DEFAULT_MODEL_PROFILE")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
