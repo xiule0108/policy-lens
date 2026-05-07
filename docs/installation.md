@@ -96,9 +96,43 @@ To ingest a policy into the local policy library:
 2. Parse it with `POST /api/documents/{document_id}/parse`.
 3. Ingest it with `POST /api/policies/from-document`.
 
-The ingestion step writes `policies`, `policy_versions`, and `policy_sections`. It requires parsed chunks and does not crawl remote policy sources, run policy association analysis, call LLMs, or create ZIP exports.
+The ingestion step writes `policies`, `policy_versions`, and `policy_sections`. It requires parsed chunks and does not crawl remote policy sources, run policy association analysis, or call LLMs.
 
-Use `GET /api/policies/{policy_id}/original` to view current normalized policy text. Policy original ZIP export is intentionally left for a later task.
+Use `GET /api/policies/{policy_id}/original` to view current normalized policy text.
+
+## Policy Export
+
+After a policy has been ingested, create a ZIP export with:
+
+```bash
+curl -X POST http://localhost:8000/api/exports/policy-originals \
+  -H "Content-Type: application/json" \
+  -d '{
+    "policy_ids": ["<policy_id>"],
+    "mode": "single_policy_full_text",
+    "formats": ["markdown", "txt", "html", "json"]
+  }'
+```
+
+The API writes the ZIP below `STORAGE_DIR` and stores only a relative key:
+
+```text
+exports/{export_id}/policy_export_bundle.zip
+```
+
+Inspect the export with:
+
+```bash
+curl http://localhost:8000/api/exports/<export_id>
+```
+
+Download it with:
+
+```bash
+curl -OJ http://localhost:8000/api/exports/<export_id>/download
+```
+
+Supported modes are `single_policy_full_text`, `related_policy_bundle`, `cited_sections_only`, `evidence_bundle`, and `machine_readable_json`. The v0.1 exporter does not include raw web or PDF snapshots.
 
 ## Migration Checks
 

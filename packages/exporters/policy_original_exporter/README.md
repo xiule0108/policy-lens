@@ -10,6 +10,8 @@ Supported export modes:
 - `evidence_bundle`
 - `machine_readable_json`
 
+The FastAPI service implements the current local exporter in `services/api/app/services/policy_export_service.py`. This package remains the shared exporter contract surface.
+
 Target bundle:
 
 ```text
@@ -17,8 +19,8 @@ policy_export_bundle.zip
   manifest.json
   policies/
   cited_sections/
-  snapshots/
-  mappings/
+  evidence/
+  machine_readable/
   checksums/
 ```
 

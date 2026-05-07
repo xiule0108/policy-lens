@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from app.db.config import settings
 from app.main import app
 
 
@@ -52,7 +53,8 @@ def test_projects_api_uses_database_records() -> None:
     assert [item["id"] for item in list_response.json()["items"]] == [created["id"]]
 
 
-def test_policy_original_export_returns_manifest() -> None:
+def test_policy_original_export_returns_manifest(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "storage_dir", str(tmp_path))
     project_response = client.post(
         "/api/projects",
         json={
@@ -63,25 +65,32 @@ def test_policy_original_export_returns_manifest() -> None:
     )
     assert project_response.status_code == 201
     project_id = project_response.json()["id"]
+    upload_response = client.post(
+        "/api/documents/upload",
+        data={"project_id": project_id, "document_role": "policy", "title": "Export contract policy"},
+        files={"file": ("policy.md", b"# Export contract policy\n\nSupport clean energy.", "text/markdown")},
+    )
+    assert upload_response.status_code == 201
+    document_id = upload_response.json()["id"]
+    parse_response = client.post(f"/api/documents/{document_id}/parse")
+    assert parse_response.status_code == 200
+    ingest_response = client.post("/api/policies/from-document", json={"document_id": document_id})
+    assert ingest_response.status_code == 201
+    policy_id = ingest_response.json()["policy_id"]
 
     response = client.post(
         "/api/exports/policy-originals",
         json={
             "project_id": project_id,
-            "policy_ids": ["policy_demo_001"],
+            "policy_ids": [policy_id],
             "mode": "related_policy_bundle",
         },
     )
     assert response.status_code == 202
     payload = response.json()
-    assert payload["manifest"]["bundle_structure"] == [
-        "manifest.json",
-        "policies/",
-        "cited_sections/",
-        "snapshots/",
-        "mappings/",
-        "checksums/",
-    ]
+    assert payload["status"] == "completed"
+    assert payload["manifest"]["policy_count"] == 1
+    assert payload["manifest"]["checksums"]["path"] == "checksums/sha256.txt"
 
 
 def test_policy_original_export_rejects_invalid_project_id() -> None:

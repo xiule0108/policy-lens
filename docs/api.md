@@ -103,9 +103,9 @@ Behavior:
 
 `GET /api/policies/{policy_id}/sections` returns the current version's sections by default. Pass `version_id` to inspect a specific version.
 
-`GET /api/policies/{policy_id}/original` returns the current version's normalized policy text and metadata for viewing. It does not create a ZIP export bundle.
+`GET /api/policies/{policy_id}/original` returns the current version's normalized policy text and metadata for viewing. Use `POST /api/exports/policy-originals` when a ZIP bundle is needed.
 
-This task does not crawl policies, judge policy legal validity, perform policy relevance analysis, or export original policy ZIP files.
+This task does not crawl policies, judge policy legal validity, or perform policy relevance analysis.
 
 ## Analysis
 
@@ -121,10 +121,42 @@ Analysis jobs must keep factual boundaries:
 ## Exports
 
 - `POST /api/exports/policy-originals`
+- `GET /api/exports/{export_id}`
+- `GET /api/exports/{export_id}/download`
 - `POST /api/exports/report`
 
-Policy original exports return a mock manifest and reserved bundle path.
-Policy original export requests now create an `exports` table record before running the mock exporter. The mock exporter still writes only the reserved bundle structure and manifest.
+`POST /api/exports/policy-originals` creates a real local ZIP bundle from policy library records. It supports these modes:
+
+- `single_policy_full_text`
+- `related_policy_bundle`
+- `cited_sections_only`
+- `evidence_bundle`
+- `machine_readable_json`
+
+Request fields:
+
+- `project_id`: optional project UUID for export tracking
+- `policy_ids`: policy UUIDs to export
+- `cited_section_ids`: policy section UUIDs to export
+- `mode`: export mode
+- `formats`: any of `markdown`, `txt`, `html`, `json`
+- `include_snapshots`: records snapshot intent in `manifest.json`; raw snapshots are not available in v0.1
+- `include_sections`: includes section text in policy files
+- `include_checksums`: writes `checksums/sha256.txt`
+
+Mode-specific request rules:
+
+- `single_policy_full_text`: exactly one `policy_id`, no `cited_section_ids`, and at least one format
+- `related_policy_bundle`: at least one `policy_id` and at least one format
+- `cited_sections_only`: at least one `cited_section_id` and no `policy_ids`
+- `evidence_bundle`: at least one `policy_id` or `cited_section_id`
+- `machine_readable_json`: at least one `policy_id` or `cited_section_id`
+
+Created exports move through `running`, `completed`, or `failed`. Successful records store only the relative ZIP key, for example `exports/{export_id}/policy_export_bundle.zip`.
+
+`GET /api/exports/{export_id}` returns the export record, formats, storage key, manifest, timestamps, and status.
+
+`GET /api/exports/{export_id}/download` streams the completed ZIP as `policy_export_{export_id}.zip`. It returns `409` if the export is not completed and never exposes the server absolute path.
 
 ## LLM
 
@@ -144,6 +176,8 @@ The following API surfaces have light database integration:
 - `GET /api/llm/providers`
 - `POST /api/llm/providers`
 - `POST /api/exports/policy-originals`
+- `GET /api/exports/{export_id}`
+- `GET /api/exports/{export_id}/download`
 - `GET /api/policies`
 - `POST /api/policies/from-document`
 - `POST /api/policies/search`

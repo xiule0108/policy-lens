@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import uuid
+from datetime import datetime, timezone
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import Export
@@ -27,6 +28,25 @@ def create_export(session: Session, data: dict) -> Export:
 
 def get_export(session: Session, export_id: uuid.UUID | str) -> Export | None:
     return session.get(Export, coerce_uuid(export_id))
+
+
+def list_exports(
+    session: Session,
+    *,
+    project_id: uuid.UUID | str | None = None,
+    export_type: str | None = None,
+    status: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[Export]:
+    statement = select(Export).order_by(Export.created_at.desc()).limit(limit).offset(offset)
+    if project_id is not None:
+        statement = statement.where(Export.project_id == coerce_uuid(project_id))
+    if export_type:
+        statement = statement.where(Export.export_type == export_type)
+    if status:
+        statement = statement.where(Export.status == status)
+    return list(session.scalars(statement))
 
 
 def update_export_status(

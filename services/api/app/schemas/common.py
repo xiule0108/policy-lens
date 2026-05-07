@@ -14,6 +14,7 @@ ExportMode = Literal[
 ]
 
 DocumentRole = Literal["research_article", "policy", "appendix"]
+ExportFormat = Literal["markdown", "txt", "html", "json"]
 
 
 class SourceRef(BaseModel):
@@ -298,10 +299,13 @@ class AnalysisJob(BaseModel):
 
 class PolicyOriginalExportRequest(BaseModel):
     project_id: UUID | None = None
-    policy_ids: list[str] = Field(default_factory=list)
-    cited_section_ids: list[str] = Field(default_factory=list)
+    policy_ids: list[UUID] = Field(default_factory=list)
+    cited_section_ids: list[UUID] = Field(default_factory=list)
     mode: ExportMode = "related_policy_bundle"
+    formats: list[ExportFormat] = Field(default_factory=lambda: ["markdown", "txt", "html", "json"])
     include_snapshots: bool = True
+    include_sections: bool = True
+    include_checksums: bool = True
 
 
 class ReportExportRequest(BaseModel):
@@ -318,6 +322,19 @@ class ExportResponse(BaseModel):
     bundle_path: str | None = None
     manifest: dict[str, Any]
     evidence: list[EvidenceItem] = Field(default_factory=list)
+
+
+class ExportDetailResponse(BaseModel):
+    export_id: str
+    project_id: str | None = None
+    analysis_id: str | None = None
+    export_type: str
+    status: str
+    formats: list[str] = Field(default_factory=list)
+    storage_key: str | None = None
+    manifest: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+    finished_at: datetime | None = None
 
 
 class LLMProvider(BaseModel):
