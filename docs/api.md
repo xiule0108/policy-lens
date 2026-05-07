@@ -114,6 +114,9 @@ This task does not crawl policies, judge policy legal validity, or perform polic
 - `GET /api/analysis/jobs/{job_id}/steps`
 - `GET /api/analysis/jobs/{job_id}/plan`
 - `GET /api/analysis/jobs/{job_id}/result`
+- `GET /api/analysis/jobs/{job_id}/claims`
+- `GET /api/analysis/jobs/{job_id}/policy-matches`
+- `GET /api/analysis/jobs/{job_id}/evidence`
 
 `POST /api/analysis/jobs` creates an `analysis_jobs` row, builds a Research Plan, and executes it synchronously in v0.1. The request requires a project UUID and at least one document UUID. The current implementation uses the first document only.
 
@@ -130,7 +133,10 @@ The default plan runs:
 - `parse_document_if_needed`
 - `collect_document_context`
 - `extract_article_signals`
+- `extract_claims`
 - `retrieve_policy_candidates`
+- `match_policy_sections`
+- `build_evidence_map`
 - `summarize_findings`
 
 The executor records a `research_plan` step, then records each step as `running`, `done`, `skipped`, or `failed`. Jobs move through `queued`, `running`, `completed`, or `failed`. Failed jobs store a short error summary without a traceback.
@@ -143,11 +149,25 @@ Analysis job route parameters are UUIDs. Malformed job IDs return `422`; well-fo
 
 `GET /api/analysis/jobs/{job_id}/result` returns the latest `analysis_results` row for the job.
 
+`GET /api/analysis/jobs/{job_id}/claims` returns deterministic claims persisted in the `claims` table for the job document.
+
+`GET /api/analysis/jobs/{job_id}/policy-matches` returns `policy_matches` tied to the job's `analysis_results` row.
+
+`GET /api/analysis/jobs/{job_id}/evidence` returns `report_json.claim_policy_map` and `report_json.fact_boundaries`.
+
 Analysis results keep factual boundaries:
 
 - original facts from uploaded article
 - retrieved facts from policy evidence
 - model reasoning
+
+The v0.1 evidence chain is rule based:
+
+```text
+document chunk -> claim -> policy section -> policy_match -> evidence map
+```
+
+It uses deterministic sentence and keyword rules plus SQL-backed policy section matching. It is not Qdrant, embedding retrieval, RAG, reranking, or LLM judgment. `model_reasoning` stays empty in the default path.
 
 ## Exports
 
@@ -242,6 +262,9 @@ The following API surfaces have light database integration:
 - `GET /api/analysis/jobs/{job_id}/steps`
 - `GET /api/analysis/jobs/{job_id}/plan`
 - `GET /api/analysis/jobs/{job_id}/result`
+- `GET /api/analysis/jobs/{job_id}/claims`
+- `GET /api/analysis/jobs/{job_id}/policy-matches`
+- `GET /api/analysis/jobs/{job_id}/evidence`
 - `GET /api/policies`
 - `POST /api/policies/from-document`
 - `POST /api/policies/search`

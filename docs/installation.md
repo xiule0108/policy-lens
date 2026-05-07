@@ -149,9 +149,12 @@ curl http://localhost:8000/api/analysis/jobs/<job_id>
 curl http://localhost:8000/api/analysis/jobs/<job_id>/steps
 curl http://localhost:8000/api/analysis/jobs/<job_id>/plan
 curl http://localhost:8000/api/analysis/jobs/<job_id>/result
+curl http://localhost:8000/api/analysis/jobs/<job_id>/claims
+curl http://localhost:8000/api/analysis/jobs/<job_id>/policy-matches
+curl http://localhost:8000/api/analysis/jobs/<job_id>/evidence
 ```
 
-The current engine runs deterministic steps and does not require LLM credentials. It can parse pending documents, collect chunks, extract simple signals, retrieve local policy candidates with SQL keyword matching, and persist an `analysis_results` row. It does not run Qdrant, embeddings, RAG, complex policy reasoning, or formal report generation.
+The current engine runs deterministic steps and does not require LLM credentials. It can parse pending documents, collect chunks, extract simple signals, extract basic claims, retrieve local policy candidates with SQL keyword matching, match claims to policy sections, write `policy_matches`, and persist an evidence map in `analysis_results.report_json`. It does not run Qdrant, embeddings, RAG, complex policy reasoning, LLM judgment, or formal report generation.
 
 ## Policy Export
 
