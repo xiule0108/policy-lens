@@ -30,6 +30,10 @@ def create_policy_sections(session: Session, sections: list[dict]) -> list[Polic
     return records
 
 
+def get_policy_section(session: Session, section_id: uuid.UUID | str) -> PolicySection | None:
+    return session.get(PolicySection, coerce_uuid(section_id))
+
+
 def delete_policy_sections(session: Session, version_id: uuid.UUID | str) -> None:
     statement = delete(PolicySection).where(PolicySection.version_id == coerce_uuid(version_id))
     session.execute(statement)

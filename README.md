@@ -8,7 +8,7 @@ PolicyLens 是一个开源的政策与市场研究解析工作台。项目面向
 
 - 研究项目管理和文章上传入口
 - 政策关联检索和政策库浏览骨架
-- 政策原文导出包骨架，保留来源、时间戳和 sha256 设计
+- 政策原文 ZIP 导出，保留来源、时间戳和 sha256 checksum
 - 政策影响矩阵、市场传导链、事实核查和图谱工作台页面
 - 研究报告导出 API 骨架
 - 中国主流大模型和 OpenAI-compatible Provider 接入预设
@@ -18,12 +18,12 @@ PolicyLens 是一个开源的政策与市场研究解析工作台。项目面向
 当前提交提供可运行工程骨架和数据库基础设施：
 
 - Next.js 前端页面使用 mock 数据
-- FastAPI API 提供 mock 业务结构，并已轻度接入 projects、documents、document_chunks、exports、LLM user providers 的数据库持久化
+- FastAPI API 提供 mock 业务结构，并已接入 projects、documents、document_chunks、policies、policy_versions、policy_sections、exports、LLM user providers 的数据库持久化
 - PostgreSQL schema、SQLAlchemy models、Alembic migration 和 repository 层已经建立
-- 本地文件上传、基础文档解析和 chunk 入库已经跑通
+- 本地文件上传、基础文档解析、chunk 入库、政策入库和政策原文 ZIP 导出已经跑通
 - Qdrant 和 worker 仍以服务预留为主
 - LLM Gateway 只完成 Provider 配置和测试接口骨架
-- 政策原文导出只完成 bundle 目录结构和 manifest skeleton
+- 政策原文导出已经支持本地 ZIP bundle、manifest 和 sha256 checksums
 
 当前提交暂未实现 OCR、完整检索、rerank、向量化、真实模型调用、报告生成和生产级任务队列；这些属于 v0.1 release roadmap。权限系统和政策来源自动抓取可后续迭代。
 
@@ -165,7 +165,27 @@ The policy library API is database-backed:
 
 Repeated ingestion of the same document returns the existing policy/version by default. Set `force_new_version=true` to create a new current version for the same policy and mark older versions as not current.
 
-This local policy library does not crawl policy sources, judge legal validity, run policy relevance analysis, call LLMs, or create ZIP export bundles. ZIP policy original export is planned for the next export task.
+This local policy library does not crawl policy sources, judge legal validity, run policy relevance analysis, or call LLMs.
+
+## Policy Original Export
+
+`POST /api/exports/policy-originals` creates a real ZIP bundle from local policy library records. It reads `policies`, the current `policy_versions`, and `policy_sections`, then writes the bundle below `STORAGE_DIR` using a relative database key:
+
+```text
+exports/{export_id}/policy_export_bundle.zip
+```
+
+Supported modes:
+
+- `single_policy_full_text`
+- `related_policy_bundle`
+- `cited_sections_only`
+- `evidence_bundle`
+- `machine_readable_json`
+
+Supported policy file formats are `markdown`, `txt`, `html`, and `json`. The bundle includes `manifest.json` and, by default, `checksums/sha256.txt`. Use `GET /api/exports/{export_id}` to inspect status and `GET /api/exports/{export_id}/download` to download the ZIP.
+
+The v0.1 exporter packages normalized policy text and sections from the database. It does not copy user-uploaded source files into the ZIP and does not include original web/PDF snapshots yet; `manifest.json` records `snapshot_status=not_available_in_v0.1` when snapshots are requested.
 
 ## CI Status
 
@@ -221,21 +241,21 @@ PolicyLens will support user-configured model names across these Provider famili
 
 The project does not hard-code concrete model names. Users configure model IDs and credentials through environment variables or future UI settings.
 
-## Policy Original Export
+## Policy Original Export Guarantees
 
-The policy original exporter is designed to package traceable policy evidence:
+The policy original exporter packages traceable policy evidence:
 
 ```text
 policy_export_bundle.zip
   manifest.json
   policies/
   cited_sections/
-  snapshots/
-  mappings/
+  evidence/
+  machine_readable/
   checksums/
 ```
 
-Planned export modes:
+Supported export modes:
 
 - single_policy_full_text
 - related_policy_bundle

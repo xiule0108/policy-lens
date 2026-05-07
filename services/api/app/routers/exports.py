@@ -1,13 +1,27 @@
-from fastapi import APIRouter, Depends
+from pathlib import Path
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
+from app.db.config import settings
 from app.db.session import get_session
+from app.repositories.exports import get_export
 from app.schemas.common import (
+    ExportDetailResponse,
     ExportResponse,
     PolicyOriginalExportRequest,
     ReportExportRequest,
 )
-from app.services.export_service import create_policy_original_export, create_report_export
+from app.services.export_service import create_report_export
+from app.services.policy_export_service import (
+    PolicyExportCurrentVersionError,
+    PolicyExportNotFoundError,
+    PolicyExportValidationError,
+    create_policy_original_export,
+)
+from app.services.storage_service import resolve_storage_path
 
 router = APIRouter()
 
@@ -17,7 +31,50 @@ def export_policy_originals(
     payload: PolicyOriginalExportRequest,
     session: Session = Depends(get_session),
 ) -> ExportResponse:
-    return create_policy_original_export(payload, session=session)
+    try:
+        return create_policy_original_export(session, payload)
+    except PolicyExportNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (PolicyExportValidationError, PolicyExportCurrentVersionError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/{export_id}", response_model=ExportDetailResponse)
+def get_export_record(export_id: UUID, session: Session = Depends(get_session)) -> ExportDetailResponse:
+    export = get_export(session, export_id)
+    if export is None:
+        raise HTTPException(status_code=404, detail="Export not found.")
+    return ExportDetailResponse(
+        export_id=str(export.id),
+        project_id=str(export.project_id) if export.project_id else None,
+        analysis_id=str(export.analysis_id) if export.analysis_id else None,
+        export_type=export.export_type,
+        status=export.status,
+        formats=export.formats or [],
+        storage_key=export.storage_key,
+        manifest=export.manifest or {},
+        created_at=export.created_at,
+        finished_at=export.finished_at,
+    )
+
+
+@router.get("/{export_id}/download")
+def download_export(export_id: UUID, session: Session = Depends(get_session)) -> FileResponse:
+    export = get_export(session, export_id)
+    if export is None:
+        raise HTTPException(status_code=404, detail="Export not found.")
+    if export.status != "completed":
+        raise HTTPException(status_code=409, detail="Export is not completed.")
+    if not export.storage_key:
+        raise HTTPException(status_code=404, detail="Export file not found.")
+    export_path = resolve_storage_path(Path(settings.storage_dir), export.storage_key)
+    if not export_path.exists():
+        raise HTTPException(status_code=404, detail="Export file not found.")
+    return FileResponse(
+        export_path,
+        media_type="application/zip",
+        filename=f"policy_export_{export.id}.zip",
+    )
 
 
 @router.post("/report", response_model=ExportResponse, status_code=202)
