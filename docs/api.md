@@ -162,10 +162,39 @@ Created exports move through `running`, `completed`, or `failed`. Successful rec
 
 - `GET /api/llm/providers`
 - `POST /api/llm/providers`
+- `POST /api/llm/chat`
 - `POST /api/llm/providers/{provider_id}/test`
+- `POST /api/llm/chat`
 
-Provider tests do not call external models in v0.1.
-Provider listing returns built-in presets plus user providers stored in the database.
+Provider listing returns built-in presets plus user providers stored in the database. Responses include `api_key_env` and `api_key_configured`, but never include API key values.
+
+When a database provider overrides a built-in preset and does not set `api_key_env`, the preset env var is inherited. For example, a `deepseek` config with only `base_url` and `model_name` still uses `DEEPSEEK_API_KEY`.
+
+`POST /api/llm/providers` upserts a provider config. Store only:
+
+- `provider_id`
+- `display_name`
+- `provider_family`
+- `base_url`
+- `api_key_env`
+- `model_name`
+- `enabled`
+- `openai_compatible`
+- `local_provider`
+
+`POST /api/llm/providers/{provider_id}/test` makes a real OpenAI-compatible `/chat/completions` call when the provider is configured. If `model` is omitted, the API uses `provider.config.model_name`. Missing `base_url`, missing model, or missing API key environment variable returns `422`. Upstream HTTP and response format errors return `502`. CI tests mock this path and do not call external models.
+
+`POST /api/llm/chat` accepts:
+
+- `provider_id`
+- optional `model`
+- `messages` with `system`, `user`, or `assistant` roles
+- `temperature`
+- optional `max_tokens`
+- `timeout_seconds`
+- optional `job_id`
+
+If `job_id` is provided and `log_step=true`, the API validates the analysis job before calling the model, then writes a lightweight `analysis_steps` record after a successful call. An unknown `job_id` returns `404` and does not call the model. Without `job_id`, or with `log_step=false`, the API returns token usage and latency without writing a log row.
 
 ## Database-Backed Surfaces
 

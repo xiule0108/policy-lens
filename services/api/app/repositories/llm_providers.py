@@ -36,3 +36,12 @@ def get_provider(session: Session, provider_key: str) -> LLMProvider | None:
 def list_providers(session: Session) -> list[LLMProvider]:
     statement = select(LLMProvider).order_by(LLMProvider.provider_key.asc())
     return list(session.scalars(statement))
+
+
+def delete_provider(session: Session, provider_key: str) -> bool:
+    provider = get_provider(session, provider_key)
+    if provider is None:
+        return False
+    session.delete(provider)
+    session.commit()
+    return True
