@@ -111,8 +111,39 @@ This task does not crawl policies, judge policy legal validity, or perform polic
 
 - `POST /api/analysis/jobs`
 - `GET /api/analysis/jobs/{job_id}`
+- `GET /api/analysis/jobs/{job_id}/steps`
+- `GET /api/analysis/jobs/{job_id}/plan`
+- `GET /api/analysis/jobs/{job_id}/result`
 
-Analysis jobs must keep factual boundaries:
+`POST /api/analysis/jobs` creates an `analysis_jobs` row, builds a Research Plan, and executes it synchronously in v0.1. The request requires a project UUID and at least one document UUID. The current implementation uses the first document only.
+
+Request fields:
+
+- `project_id`: project UUID
+- `document_ids`: at least one document UUID
+- `analysis_types`: defaults to `policy_deep_dive`
+- `model_profile`: defaults to `china_balanced`
+- `use_llm`, `provider_id`, `model`: reserved for optional LLM summary paths; deterministic execution is the default
+
+The default plan runs:
+
+- `parse_document_if_needed`
+- `collect_document_context`
+- `extract_article_signals`
+- `retrieve_policy_candidates`
+- `summarize_findings`
+
+The executor records a `research_plan` step, then records each step as `running`, `done`, `skipped`, or `failed`. Jobs move through `queued`, `running`, `completed`, or `failed`. Failed jobs store a short error summary without a traceback.
+
+Analysis job route parameters are UUIDs. Malformed job IDs return `422`; well-formed but unknown job IDs return `404`.
+
+`GET /api/analysis/jobs/{job_id}/steps` returns persisted `analysis_steps`.
+
+`GET /api/analysis/jobs/{job_id}/plan` returns the plan stored in the `research_plan` step.
+
+`GET /api/analysis/jobs/{job_id}/result` returns the latest `analysis_results` row for the job.
+
+Analysis results keep factual boundaries:
 
 - original facts from uploaded article
 - retrieved facts from policy evidence
@@ -162,7 +193,6 @@ Created exports move through `running`, `completed`, or `failed`. Successful rec
 
 - `GET /api/llm/providers`
 - `POST /api/llm/providers`
-- `POST /api/llm/chat`
 - `POST /api/llm/providers/{provider_id}/test`
 - `POST /api/llm/chat`
 
@@ -207,6 +237,11 @@ The following API surfaces have light database integration:
 - `POST /api/exports/policy-originals`
 - `GET /api/exports/{export_id}`
 - `GET /api/exports/{export_id}/download`
+- `POST /api/analysis/jobs`
+- `GET /api/analysis/jobs/{job_id}`
+- `GET /api/analysis/jobs/{job_id}/steps`
+- `GET /api/analysis/jobs/{job_id}/plan`
+- `GET /api/analysis/jobs/{job_id}/result`
 - `GET /api/policies`
 - `POST /api/policies/from-document`
 - `POST /api/policies/search`

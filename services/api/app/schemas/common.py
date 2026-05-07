@@ -279,10 +279,13 @@ class PolicyOriginalResponse(BaseModel):
 
 
 class AnalysisJobRequest(BaseModel):
-    project_id: str
-    document_ids: list[str] = Field(default_factory=list)
-    analysis_types: list[str] = Field(default_factory=lambda: ["impact_matrix"])
+    project_id: UUID
+    document_ids: list[UUID] = Field(default_factory=list)
+    analysis_types: list[str] = Field(default_factory=lambda: ["policy_deep_dive"])
     model_profile: str = "china_balanced"
+    use_llm: bool = False
+    provider_id: str | None = None
+    model: str | None = None
 
 
 class AnalysisJob(BaseModel):
@@ -295,6 +298,58 @@ class AnalysisJob(BaseModel):
     updated_at: datetime
     result_preview: dict[str, Any]
     evidence: list[EvidenceItem] = Field(default_factory=list)
+
+
+class AnalysisJobResponse(BaseModel):
+    id: str
+    project_id: str
+    document_id: str | None = None
+    status: str
+    mode: str
+    model_profile: str | None = None
+    progress: float
+    result_id: str | None = None
+    created_at: datetime
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+
+
+class AnalysisStepResponse(BaseModel):
+    id: str
+    job_id: str
+    step_id: str
+    tool_name: str | None = None
+    status: str
+    model_provider: str | None = None
+    model_name: str | None = None
+    input_ref: dict[str, Any] = Field(default_factory=dict)
+    output_ref: dict[str, Any] = Field(default_factory=dict)
+    token_usage: dict[str, Any] = Field(default_factory=dict)
+    latency_ms: int | None = None
+    error_message: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class AnalysisStepListResponse(BaseModel):
+    items: list[AnalysisStepResponse]
+
+
+class ResearchPlanResponse(BaseModel):
+    plan: dict[str, Any]
+
+
+class AnalysisResultResponse(BaseModel):
+    id: str
+    project_id: str
+    job_id: str
+    summary: dict[str, Any] = Field(default_factory=dict)
+    claims: list[dict[str, Any]] = Field(default_factory=list)
+    related_policies: list[dict[str, Any]] = Field(default_factory=list)
+    impact_matrix: list[dict[str, Any]] = Field(default_factory=list)
+    report_markdown: str | None = None
+    report_json: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
 
 
 class PolicyOriginalExportRequest(BaseModel):

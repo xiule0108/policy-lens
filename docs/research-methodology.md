@@ -42,6 +42,27 @@ Transmission chain analysis should preserve:
 - market price or quantity effect
 - risk and uncertainty factors
 
+## Research Plan Engine
+
+Task 08 introduces a synchronous Research Plan execution engine. It is intentionally deterministic and auditable:
+
+- `POST /api/analysis/jobs` creates an `analysis_jobs` row.
+- The plan builder writes a `research_plan` step with the full plan JSON.
+- The executor runs each step in order and persists `analysis_steps`.
+- The executor writes one `analysis_results` row with summary, claims, related policies, empty impact matrix, and `report_json`.
+
+Default steps:
+
+1. `parse_document_if_needed`
+2. `collect_document_context`
+3. `extract_article_signals`
+4. `retrieve_policy_candidates`
+5. `summarize_findings`
+
+The current policy retrieval is SQL-backed keyword matching over local `policies` and `policy_sections`. It is not vector retrieval, embedding search, reranking, or RAG.
+
+LLM use is optional and not required by the default path. CI tests must not call external model providers.
+
 ## v0.1 Scope
 
-The current repository only supplies layout, API contracts, and mock data. Research logic will be implemented after parsers, retrievers, and evidence schemas are stable.
+The current repository now supports upload, deterministic parsing, chunk storage, policy library ingestion, policy original export, LLM provider gateway configuration, and a synchronous Research Plan execution skeleton. Full policy matching, impact matrix generation, and formal report generation are future tasks.
