@@ -24,6 +24,7 @@ PolicyLens v0.1 includes an OpenAI-compatible LLM Gateway for provider configura
 - Database provider records store only the env var name, for example `DEEPSEEK_API_KEY`.
 - API responses return `api_key_configured=true/false`, never the key value.
 - Provider presets can be overridden by database provider records with the same `provider_key`.
+- If a preset override does not provide `api_key_env`, the preset default is inherited, such as `DEEPSEEK_API_KEY` for `deepseek` or `CUSTOM_LLM_API_KEY` for `openai_compatible_custom`.
 - Custom provider records can use any OpenAI-compatible `base_url`.
 - Local providers may omit `api_key_env` and send no Authorization header.
 
@@ -35,6 +36,8 @@ PolicyLens v0.1 includes an OpenAI-compatible LLM Gateway for provider configura
 - `POST /api/llm/chat` performs a non-streaming chat completion call.
 
 Provider tests and chat calls are not run against real external services in CI. Tests use mocked HTTP transports or monkeypatched gateway responses.
+
+`POST /api/llm/chat` writes `analysis_steps` only when `log_step=true` and a valid `job_id` is provided. Invalid `job_id` values return `404` before any model call is made.
 
 ## Current Limitations
 

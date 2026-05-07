@@ -168,6 +168,8 @@ Created exports move through `running`, `completed`, or `failed`. Successful rec
 
 Provider listing returns built-in presets plus user providers stored in the database. Responses include `api_key_env` and `api_key_configured`, but never include API key values.
 
+When a database provider overrides a built-in preset and does not set `api_key_env`, the preset env var is inherited. For example, a `deepseek` config with only `base_url` and `model_name` still uses `DEEPSEEK_API_KEY`.
+
 `POST /api/llm/providers` upserts a provider config. Store only:
 
 - `provider_id`
@@ -192,7 +194,7 @@ Provider listing returns built-in presets plus user providers stored in the data
 - `timeout_seconds`
 - optional `job_id`
 
-If `job_id` is provided and `log_step=true`, the API writes a lightweight `analysis_steps` record. Without `job_id`, the API returns token usage and latency without writing a log row.
+If `job_id` is provided and `log_step=true`, the API validates the analysis job before calling the model, then writes a lightweight `analysis_steps` record after a successful call. An unknown `job_id` returns `404` and does not call the model. Without `job_id`, or with `log_step=false`, the API returns token usage and latency without writing a log row.
 
 ## Database-Backed Surfaces
 

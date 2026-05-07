@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.session import get_session
+from app.repositories.analysis_jobs import get_analysis_job
 from app.repositories.analysis_steps import create_analysis_step
 from app.repositories.llm_providers import upsert_provider
 from app.schemas.common import (
@@ -41,6 +42,14 @@ def list_providers(session: Session = Depends(get_session)) -> LLMProviderListRe
 @router.post("/providers", response_model=LLMProvider, status_code=201)
 def create_provider(payload: LLMProviderCreate, session: Session = Depends(get_session)) -> LLMProvider:
     provider_key = payload.provider_id or f"provider_{uuid4().hex[:8]}"
+    config = {
+        "aliases": payload.aliases,
+        "model_name": payload.model_name,
+    }
+    if "openai_compatible" in payload.model_fields_set:
+        config["openai_compatible"] = payload.openai_compatible
+    if "local_provider" in payload.model_fields_set:
+        config["local_provider"] = payload.local_provider
     upsert_provider(
         session,
         {
@@ -50,12 +59,7 @@ def create_provider(payload: LLMProviderCreate, session: Session = Depends(get_s
             "base_url": payload.base_url,
             "api_key_env": payload.api_key_env,
             "enabled": payload.enabled,
-            "config": {
-                "aliases": payload.aliases,
-                "model_name": payload.model_name,
-                "openai_compatible": payload.openai_compatible,
-                "local_provider": payload.local_provider,
-            },
+            "config": config,
         },
     )
     provider = get_provider_config(session, provider_key)
@@ -124,6 +128,8 @@ def create_chat_completion(
     model = payload.model or provider.model_name
     if not model:
         raise HTTPException(status_code=422, detail="Chat completion requires a model name.")
+    if payload.log_step and payload.job_id and get_analysis_job(session, payload.job_id) is None:
+        raise HTTPException(status_code=404, detail="Analysis job not found.")
 
     request = LLMChatRequest(
         provider_key=payload.provider_id,

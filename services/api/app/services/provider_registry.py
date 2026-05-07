@@ -139,8 +139,11 @@ def merge_preset_and_user_provider(
     user_provider: LLMProviderModel,
 ) -> LLMProvider:
     config = user_provider.config or {}
-    api_key_env = user_provider.api_key_env
-    local_provider = bool(config.get("local_provider", preset.local_provider if preset else False))
+    api_key_env = user_provider.api_key_env if user_provider.api_key_env is not None else (
+        preset.api_key_env if preset else None
+    )
+    openai_compatible = _config_value(config, "openai_compatible", preset.openai_compatible if preset else True)
+    local_provider = _config_value(config, "local_provider", preset.local_provider if preset else False)
     return LLMProvider(
         id=user_provider.provider_key,
         display_name=user_provider.display_name or (preset.display_name if preset else user_provider.provider_key),
@@ -149,10 +152,10 @@ def merge_preset_and_user_provider(
         api_key_env=api_key_env,
         api_key_configured=_api_key_configured(api_key_env),
         base_url=user_provider.base_url if user_provider.base_url is not None else (preset.base_url if preset else None),
-        model_name=config.get("model_name", preset.model_name if preset else None),
+        model_name=_config_value(config, "model_name", preset.model_name if preset else None),
         enabled=user_provider.enabled,
-        openai_compatible=bool(config.get("openai_compatible", preset.openai_compatible if preset else True)),
-        local_provider=local_provider,
+        openai_compatible=bool(openai_compatible),
+        local_provider=bool(local_provider),
         notes=config.get("notes") or (preset.notes if preset else "User-created provider config."),
     )
 
@@ -179,3 +182,8 @@ def _api_key_configured(api_key_env: str | None) -> bool:
     if not api_key_env:
         return False
     return bool(os.environ.get(api_key_env))
+
+
+def _config_value(config: dict[str, Any], key: str, fallback: Any) -> Any:
+    value = config.get(key)
+    return fallback if value is None else value

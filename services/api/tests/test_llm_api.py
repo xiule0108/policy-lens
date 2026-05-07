@@ -61,6 +61,43 @@ def test_llm_provider_upsert_user_provider_and_merge_with_presets(monkeypatch) -
     assert custom["api_key_configured"] is True
 
 
+def test_llm_provider_preset_api_key_env_falls_back_when_user_omits_it(monkeypatch) -> None:
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "deepseek-secret-value")
+    monkeypatch.setenv("CUSTOM_LLM_API_KEY", "custom-secret-value")
+
+    deepseek_response = client.post(
+        "/api/llm/providers",
+        json={
+            "provider_id": "deepseek",
+            "display_name": "DeepSeek Configured",
+            "provider_family": "deepseek",
+            "base_url": "https://models.example.com/v1",
+            "model_name": "configured-by-user",
+            "enabled": True,
+        },
+    )
+    assert deepseek_response.status_code == 201
+    assert deepseek_response.json()["api_key_env"] == "DEEPSEEK_API_KEY"
+    assert deepseek_response.json()["api_key_configured"] is True
+    assert "deepseek-secret-value" not in deepseek_response.text
+
+    custom_response = client.post(
+        "/api/llm/providers",
+        json={
+            "provider_id": "openai_compatible_custom",
+            "display_name": "Custom Configured",
+            "provider_family": "openai_compatible",
+            "base_url": "https://custom.example.com/v1",
+            "model_name": "configured-by-user",
+            "enabled": True,
+        },
+    )
+    assert custom_response.status_code == 201
+    assert custom_response.json()["api_key_env"] == "CUSTOM_LLM_API_KEY"
+    assert custom_response.json()["api_key_configured"] is True
+    assert "custom-secret-value" not in custom_response.text
+
+
 def test_llm_provider_test_requires_model_and_api_key(monkeypatch) -> None:
     monkeypatch.delenv("CUSTOM_LLM_API_KEY", raising=False)
     create_response = client.post(
@@ -164,6 +201,91 @@ def test_llm_chat_success_uses_gateway(monkeypatch) -> None:
     assert response.status_code == 200
     assert response.json()["content"] == "chat ok"
     assert response.json()["token_usage"] == {"total_tokens": 5}
+    assert response.json()["step_id"] is None
+
+
+def test_llm_chat_rejects_missing_job_id_before_gateway_call(monkeypatch) -> None:
+    client.post(
+        "/api/llm/providers",
+        json={
+            "provider_id": "job_checked_provider",
+            "display_name": "Job Checked Provider",
+            "provider_family": "openai_compatible",
+            "api_key_env": None,
+            "base_url": "http://localhost:11434/v1",
+            "model_name": "local-model",
+            "enabled": True,
+            "local_provider": True,
+        },
+    )
+    called = False
+
+    def fake_chat_completion(session, request, transport=None):
+        nonlocal called
+        called = True
+        return LLMChatResponse(
+            provider_key=request.provider_key,
+            model=request.model,
+            content="should not be called",
+            raw_response={},
+            token_usage={},
+            latency_ms=1,
+        )
+
+    monkeypatch.setattr("app.routers.llm.chat_completion", fake_chat_completion)
+
+    response = client.post(
+        "/api/llm/chat",
+        json={
+            "provider_id": "job_checked_provider",
+            "job_id": "11111111-1111-4111-8111-111111111111",
+            "messages": [{"role": "user", "content": "hello"}],
+        },
+    )
+
+    assert response.status_code == 404
+    assert called is False
+
+
+def test_llm_chat_skips_job_validation_when_log_step_is_false(monkeypatch) -> None:
+    client.post(
+        "/api/llm/providers",
+        json={
+            "provider_id": "no_log_provider",
+            "display_name": "No Log Provider",
+            "provider_family": "openai_compatible",
+            "api_key_env": None,
+            "base_url": "http://localhost:11434/v1",
+            "model_name": "local-model",
+            "enabled": True,
+            "local_provider": True,
+        },
+    )
+
+    def fake_chat_completion(session, request, transport=None):
+        return LLMChatResponse(
+            provider_key=request.provider_key,
+            model=request.model,
+            content="chat ok",
+            raw_response={},
+            token_usage={"total_tokens": 1},
+            latency_ms=5,
+        )
+
+    monkeypatch.setattr("app.routers.llm.chat_completion", fake_chat_completion)
+
+    response = client.post(
+        "/api/llm/chat",
+        json={
+            "provider_id": "no_log_provider",
+            "job_id": "11111111-1111-4111-8111-111111111111",
+            "log_step": False,
+            "messages": [{"role": "user", "content": "hello"}],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["content"] == "chat ok"
     assert response.json()["step_id"] is None
 
 
