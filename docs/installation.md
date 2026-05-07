@@ -88,6 +88,18 @@ documents/{project_id}/{document_id}/{safe_filename}
 
 The v0.1 basic parser does not run OCR. Scanned PDFs or files with no extractable text move to `parse_status=failed` and store a short error summary in `metadata.parse_error`.
 
+## Policy Library
+
+To ingest a policy into the local policy library:
+
+1. Upload a document with `document_role=policy`.
+2. Parse it with `POST /api/documents/{document_id}/parse`.
+3. Ingest it with `POST /api/policies/from-document`.
+
+The ingestion step writes `policies`, `policy_versions`, and `policy_sections`. It requires parsed chunks and does not crawl remote policy sources, run policy association analysis, call LLMs, or create ZIP exports.
+
+Use `GET /api/policies/{policy_id}/original` to view current normalized policy text. Policy original ZIP export is intentionally left for a later task.
+
 ## Migration Checks
 
 From `services/api`, run:

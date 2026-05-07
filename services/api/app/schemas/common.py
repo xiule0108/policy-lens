@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Literal
 from uuid import UUID
 
@@ -163,8 +163,33 @@ class Policy(BaseModel):
     evidence: list[EvidenceItem] = Field(default_factory=list)
 
 
+class PolicyResponse(BaseModel):
+    id: str
+    title: str
+    normalized_title: str | None = None
+    issuer: str | None = None
+    issuer_level: str | None = None
+    jurisdiction: str | None = None
+    policy_type: str | None = None
+    publish_date: date | None = None
+    effective_date: date | None = None
+    expiry_date: date | None = None
+    status: str
+    source_url: str | None = None
+    sha256: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+    updated_at: datetime
+    evidence: list[EvidenceItem] = Field(default_factory=list)
+
+
+class PolicyDetailResponse(PolicyResponse):
+    current_version_id: str | None = None
+    evidence: list[EvidenceItem] = Field(default_factory=list)
+
+
 class PolicyListResponse(BaseModel):
-    items: list[Policy]
+    items: list[PolicyResponse]
 
 
 class PolicySearchRequest(BaseModel):
@@ -177,8 +202,79 @@ class PolicySearchRequest(BaseModel):
 class PolicySearchResponse(BaseModel):
     query: str
     total: int
-    items: list[Policy]
+    items: list[PolicyResponse]
     evidence: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class PolicyCreateFromDocumentRequest(BaseModel):
+    document_id: UUID
+    policy_id: UUID | None = None
+    title: str | None = None
+    issuer: str | None = None
+    issuer_level: str | None = None
+    jurisdiction: str | None = None
+    policy_type: str | None = None
+    publish_date: date | None = None
+    effective_date: date | None = None
+    expiry_date: date | None = None
+    status: str = "unknown"
+    version_label: str | None = None
+    force_new_version: bool = False
+
+
+class PolicyCreateFromDocumentResponse(BaseModel):
+    policy_id: str
+    version_id: str
+    section_count: int
+    title: str
+    status: str
+    already_ingested: bool = False
+
+
+class PolicyVersionResponse(BaseModel):
+    id: str
+    policy_id: str
+    version_label: str | None = None
+    source_url: str | None = None
+    captured_at: datetime
+    sha256: str | None = None
+    is_current: bool
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+
+
+class PolicyVersionListResponse(BaseModel):
+    items: list[PolicyVersionResponse]
+
+
+class PolicySectionResponse(BaseModel):
+    id: str
+    policy_id: str
+    version_id: str
+    section_path: str | None = None
+    heading: str | None = None
+    content: str
+    order_index: int
+    token_count: int | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+
+
+class PolicySectionListResponse(BaseModel):
+    items: list[PolicySectionResponse]
+    total: int
+
+
+class PolicyOriginalResponse(BaseModel):
+    policy_id: str
+    version_id: str
+    title: str
+    source_url: str | None = None
+    captured_at: datetime
+    sha256: str | None = None
+    normalized_text: str
+    sections_count: int
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class AnalysisJobRequest(BaseModel):
