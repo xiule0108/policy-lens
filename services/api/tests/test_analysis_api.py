@@ -79,7 +79,10 @@ def test_analysis_api_runs_research_plan_and_returns_steps_plan_and_result(tmp_p
     step_ids = [item["step_id"] for item in steps_response.json()["items"]]
     assert "collect_document_context" in step_ids
     assert "extract_article_signals" in step_ids
+    assert "extract_claims" in step_ids
     assert "retrieve_policy_candidates" in step_ids
+    assert "match_policy_sections" in step_ids
+    assert "build_evidence_map" in step_ids
     assert "summarize_findings" in step_ids
 
     plan_response = client.get(f"/api/analysis/jobs/{job_payload['id']}/plan")

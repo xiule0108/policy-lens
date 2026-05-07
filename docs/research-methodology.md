@@ -56,13 +56,34 @@ Default steps:
 1. `parse_document_if_needed`
 2. `collect_document_context`
 3. `extract_article_signals`
-4. `retrieve_policy_candidates`
-5. `summarize_findings`
+4. `extract_claims`
+5. `retrieve_policy_candidates`
+6. `match_policy_sections`
+7. `build_evidence_map`
+8. `summarize_findings`
 
 The current policy retrieval is SQL-backed keyword matching over local `policies` and `policy_sections`. It is not vector retrieval, embedding search, reranking, or RAG.
 
 LLM use is optional and not required by the default path. CI tests must not call external model providers.
 
+## Claim And Evidence Matching
+
+Task 09 adds the first deterministic evidence chain:
+
+```text
+document_chunks -> claims -> policy_sections -> policy_matches -> analysis_results.report_json
+```
+
+Claims are extracted from article chunks with sentence and keyword rules. Policy matching scores claim keywords against current policy titles, issuers, jurisdictions, section headings, paths, and section content. Each `policy_match.evidence` preserves the claim quote, source chunk ids, policy section id, policy quote, matched terms, score components, and `fact_boundary=retrieved_fact`.
+
+The evidence API exposes:
+
+- `GET /api/analysis/jobs/{job_id}/claims`
+- `GET /api/analysis/jobs/{job_id}/policy-matches`
+- `GET /api/analysis/jobs/{job_id}/evidence`
+
+This matching is not legal interpretation, RAG, embedding retrieval, or LLM reasoning. `model_reasoning` remains empty in the deterministic path.
+
 ## v0.1 Scope
 
-The current repository now supports upload, deterministic parsing, chunk storage, policy library ingestion, policy original export, LLM provider gateway configuration, and a synchronous Research Plan execution skeleton. Full policy matching, impact matrix generation, and formal report generation are future tasks.
+The current repository now supports upload, deterministic parsing, chunk storage, policy library ingestion, policy original export, LLM provider gateway configuration, synchronous Research Plan execution, and a basic claim-policy evidence chain. Impact matrix generation and formal report generation are future tasks.

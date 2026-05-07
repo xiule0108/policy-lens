@@ -12,44 +12,27 @@ def run_summarize_findings(
 ) -> StepRunResult:
     context = step_outputs.get("collect_document_context", {})
     signals = step_outputs.get("extract_article_signals", {})
+    extracted_claims = step_outputs.get("extract_claims", {})
     retrieval = step_outputs.get("retrieve_policy_candidates", {})
+    policy_matches = step_outputs.get("match_policy_sections", {})
+    evidence_map = step_outputs.get("build_evidence_map", {})
     document = context.get("document", {})
     candidates = retrieval.get("candidates", [])
+    claims = extracted_claims.get("claims", [])
+    matches = policy_matches.get("matches", [])
     summary = {
         "document_title": document.get("title"),
         "document_language": document.get("language"),
         "chunk_count": context.get("chunk_count", 0),
         "summary_fallback": signals.get("summary_fallback", ""),
+        "claim_count": len(claims),
         "policy_candidate_count": len(candidates),
+        "policy_match_count": len(matches),
     }
-    claims = [
-        {
-            "claim_text": term,
-            "claim_type": "signal",
-            "source": "deterministic_extractor",
-            "evidence": [{"source_type": "document_context", "document_id": plan.document_id}],
-        }
-        for term in signals.get("policy_terms") or signals.get("keywords", [])[:5]
-    ]
-    fact_boundaries = {
-        "original_facts": [
-            {
-                "source": "document",
-                "document_id": plan.document_id,
-                "summary": signals.get("summary_fallback", ""),
-            }
-        ],
-        "retrieved_facts": [
-            {
-                "source": "policy_candidate",
-                "policy_id": candidate["policy_id"],
-                "title": candidate["title"],
-                "score": candidate["score"],
-            }
-            for candidate in candidates
-        ],
-        "model_reasoning": [],
-    }
+    fact_boundaries = evidence_map.get(
+        "fact_boundaries",
+        {"original_facts": [], "retrieved_facts": [], "model_reasoning": []},
+    )
     return StepRunResult(
         output_ref={
             "summary": summary,
@@ -57,5 +40,7 @@ def run_summarize_findings(
             "related_policies": candidates,
             "impact_matrix": [],
             "fact_boundaries": fact_boundaries,
+            "claim_policy_map": evidence_map.get("claim_policy_map", []),
+            "policy_matches": matches,
         }
     )

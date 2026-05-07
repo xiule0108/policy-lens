@@ -9,6 +9,7 @@ from app.db.base import utc_now
 from app.repositories.analysis_jobs import get_analysis_job, update_analysis_job_status
 from app.repositories.analysis_results import create_analysis_result
 from app.repositories.analysis_steps import create_analysis_step, update_analysis_step
+from app.repositories.policy_matches import create_policy_matches
 from app.research.plan_schema import ResearchPlan
 from app.research.step_registry import get_step_handler
 
@@ -107,7 +108,7 @@ def _record_plan_step(session: Session, job_id, plan: ResearchPlan) -> None:
 
 def _persist_result(session: Session, job_id, plan: ResearchPlan, step_outputs: dict[str, dict]):
     summary_output = step_outputs.get("summarize_findings", {})
-    return create_analysis_result(
+    result = create_analysis_result(
         session,
         {
             "project_id": plan.project_id,
@@ -119,6 +120,7 @@ def _persist_result(session: Session, job_id, plan: ResearchPlan, step_outputs: 
             "report_json": {
                 "research_plan": plan.model_dump(mode="json"),
                 "step_outputs": step_outputs,
+                "claim_policy_map": summary_output.get("claim_policy_map", []),
                 "fact_boundaries": summary_output.get(
                     "fact_boundaries",
                     {"original_facts": [], "retrieved_facts": [], "model_reasoning": []},
@@ -126,6 +128,15 @@ def _persist_result(session: Session, job_id, plan: ResearchPlan, step_outputs: 
             },
         },
     )
+    _persist_policy_matches(session, result.id, step_outputs.get("match_policy_sections", {}).get("matches", []))
+    return result
+
+
+def _persist_policy_matches(session: Session, analysis_id, matches: list[dict]) -> None:
+    if not matches:
+        return
+    records = [{**match, "analysis_id": analysis_id} for match in matches]
+    create_policy_matches(session, records)
 
 
 def _short_error(exc: Exception) -> str:

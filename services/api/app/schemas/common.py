@@ -352,6 +352,49 @@ class AnalysisResultResponse(BaseModel):
     created_at: datetime
 
 
+class AnalysisClaimResponse(BaseModel):
+    id: str
+    project_id: str
+    document_id: str
+    claim_text: str
+    claim_type: str
+    topic: str | None = None
+    industry: str | None = None
+    jurisdiction: str | None = None
+    confidence: float | None = None
+    source_chunk_ids: list[str] = Field(default_factory=list)
+    created_at: datetime
+
+
+class AnalysisClaimListResponse(BaseModel):
+    items: list[AnalysisClaimResponse]
+
+
+class PolicyMatchResponse(BaseModel):
+    id: str
+    project_id: str
+    analysis_id: str | None = None
+    claim_id: str
+    policy_id: str
+    policy_section_id: str | None = None
+    match_type: str
+    relevance_score: float | None = None
+    reason: str | None = None
+    evidence: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+
+
+class PolicyMatchListResponse(BaseModel):
+    items: list[PolicyMatchResponse]
+
+
+class AnalysisEvidenceResponse(BaseModel):
+    job_id: str
+    result_id: str
+    claim_policy_map: list[dict[str, Any]] = Field(default_factory=list)
+    fact_boundaries: dict[str, Any] = Field(default_factory=dict)
+
+
 class PolicyOriginalExportRequest(BaseModel):
     project_id: UUID | None = None
     policy_ids: list[UUID] = Field(default_factory=list)

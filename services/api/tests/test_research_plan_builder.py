@@ -22,11 +22,14 @@ def test_default_research_plan_contains_expected_steps() -> None:
         "parse_document_if_needed",
         "collect_document_context",
         "extract_article_signals",
+        "extract_claims",
         "retrieve_policy_candidates",
+        "match_policy_sections",
+        "build_evidence_map",
         "summarize_findings",
     ]
     assert plan.steps[0].tool_name == "parse_document_if_needed"
-    assert plan.steps[-1].depends_on == ["retrieve_policy_candidates"]
+    assert plan.steps[-1].depends_on == ["build_evidence_map"]
     assert plan.metadata["analysis_types"] == ["policy_deep_dive"]
 
 
