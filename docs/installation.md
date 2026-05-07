@@ -127,6 +127,32 @@ curl -X POST http://localhost:8000/api/llm/providers \
 
 The database stores only `api_key_env`, not the secret value. `POST /api/llm/providers/{provider_id}/test` and `POST /api/llm/chat` make real OpenAI-compatible `/chat/completions` calls when the provider is configured. CI tests mock these calls and do not require real API keys.
 
+## Research Plan
+
+After uploading a research article, run the synchronous v0.1 Research Plan engine with:
+
+```bash
+curl -X POST http://localhost:8000/api/analysis/jobs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": "<project_id>",
+    "document_ids": ["<document_id>"],
+    "analysis_types": ["policy_deep_dive"],
+    "model_profile": "china_balanced"
+  }'
+```
+
+Inspect execution state and evidence boundaries with:
+
+```bash
+curl http://localhost:8000/api/analysis/jobs/<job_id>
+curl http://localhost:8000/api/analysis/jobs/<job_id>/steps
+curl http://localhost:8000/api/analysis/jobs/<job_id>/plan
+curl http://localhost:8000/api/analysis/jobs/<job_id>/result
+```
+
+The current engine runs deterministic steps and does not require LLM credentials. It can parse pending documents, collect chunks, extract simple signals, retrieve local policy candidates with SQL keyword matching, and persist an `analysis_results` row. It does not run Qdrant, embeddings, RAG, complex policy reasoning, or formal report generation.
+
 ## Policy Export
 
 After a policy has been ingested, create a ZIP export with:

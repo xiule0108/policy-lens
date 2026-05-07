@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -39,3 +41,30 @@ def list_analysis_jobs(
     if project_id is not None:
         statement = statement.where(AnalysisJob.project_id == coerce_uuid(project_id))
     return list(session.scalars(statement))
+
+
+def update_analysis_job_status(
+    session: Session,
+    job_id: uuid.UUID | str,
+    *,
+    status: str,
+    progress: float | Decimal | None = None,
+    error_message: str | None = None,
+    started_at: datetime | None = None,
+    finished_at: datetime | None = None,
+) -> AnalysisJob | None:
+    job = get_analysis_job(session, job_id)
+    if job is None:
+        return None
+    job.status = status
+    if progress is not None:
+        job.progress = Decimal(str(progress))
+    if error_message is not None:
+        job.error_message = error_message
+    if started_at is not None:
+        job.started_at = started_at
+    if finished_at is not None:
+        job.finished_at = finished_at
+    session.commit()
+    session.refresh(job)
+    return job

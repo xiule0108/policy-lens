@@ -9,6 +9,7 @@ PolicyLens 是一个开源的政策与市场研究解析工作台。项目面向
 - 研究项目管理和文章上传入口
 - 政策关联检索和政策库浏览骨架
 - 政策原文 ZIP 导出，保留来源、时间戳和 sha256 checksum
+- Research Plan 同步执行引擎，记录 job、step 和 result
 - 政策影响矩阵、市场传导链、事实核查和图谱工作台页面
 - 研究报告导出 API 骨架
 - 中国主流大模型和 OpenAI-compatible Provider 配置、连接测试和基础 chat 调用
@@ -20,12 +21,12 @@ PolicyLens 是一个开源的政策与市场研究解析工作台。项目面向
 - Next.js 前端页面使用 mock 数据
 - FastAPI API 提供 mock 业务结构，并已接入 projects、documents、document_chunks、policies、policy_versions、policy_sections、exports、LLM user providers 的数据库持久化
 - PostgreSQL schema、SQLAlchemy models、Alembic migration 和 repository 层已经建立
-- 本地文件上传、基础文档解析、chunk 入库、政策入库和政策原文 ZIP 导出已经跑通
+- 本地文件上传、基础文档解析、chunk 入库、政策入库、政策原文 ZIP 导出和 Research Plan 同步执行已经跑通
 - Qdrant 和 worker 仍以服务预留为主
 - LLM Gateway 已支持 OpenAI-compatible chat 调用、Provider 连接测试和不落库密钥读取
 - 政策原文导出已经支持本地 ZIP bundle、manifest 和 sha256 checksums
 
-当前提交暂未实现 OCR、完整检索、rerank、向量化、streaming、报告生成和生产级任务队列；这些属于 v0.1 release roadmap。权限系统和政策来源自动抓取可后续迭代。
+当前提交暂未实现 OCR、向量检索、rerank、streaming、完整影响矩阵、正式报告生成和生产级任务队列；这些属于 v0.1 release roadmap。权限系统和政策来源自动抓取可后续迭代。
 
 ## Tech Stack
 
