@@ -86,6 +86,7 @@ def test_policy_export_api_create_detail_and_download(tmp_path, monkeypatch) -> 
 def test_policy_export_api_validation_errors(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(settings, "storage_dir", str(tmp_path))
     project_id = create_project()
+    policy_id, section_id = create_ingested_policy(project_id)
 
     empty_response = client.post("/api/exports/policy-originals", json={"mode": "related_policy_bundle"})
     assert empty_response.status_code == 422
@@ -106,6 +107,27 @@ def test_policy_export_api_validation_errors(tmp_path, monkeypatch) -> None:
     )
     assert cited_missing_response.status_code == 422
 
+    single_with_section_response = client.post(
+        "/api/exports/policy-originals",
+        json={
+            "project_id": project_id,
+            "policy_ids": [policy_id],
+            "cited_section_ids": [section_id],
+            "mode": "single_policy_full_text",
+        },
+    )
+    assert single_with_section_response.status_code == 422
+
+    related_with_only_section_response = client.post(
+        "/api/exports/policy-originals",
+        json={
+            "project_id": project_id,
+            "cited_section_ids": [section_id],
+            "mode": "related_policy_bundle",
+        },
+    )
+    assert related_with_only_section_response.status_code == 422
+
 
 def test_policy_export_download_rejects_unfinished_exports(db_session) -> None:
     export = create_export(
@@ -121,3 +143,20 @@ def test_policy_export_download_rejects_unfinished_exports(db_session) -> None:
     response = client.get(f"/api/exports/{export.id}/download")
 
     assert response.status_code == 409
+
+
+def test_policy_export_download_rejects_unsafe_storage_key(db_session) -> None:
+    export = create_export(
+        db_session,
+        {
+            "export_type": "policy_originals",
+            "status": "completed",
+            "formats": ["zip"],
+            "storage_key": "../escape.zip",
+            "manifest": {"mode": "related_policy_bundle"},
+        },
+    )
+
+    response = client.get(f"/api/exports/{export.id}/download")
+
+    assert response.status_code == 404

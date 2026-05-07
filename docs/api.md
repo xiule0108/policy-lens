@@ -144,6 +144,14 @@ Request fields:
 - `include_sections`: includes section text in policy files
 - `include_checksums`: writes `checksums/sha256.txt`
 
+Mode-specific request rules:
+
+- `single_policy_full_text`: exactly one `policy_id`, no `cited_section_ids`, and at least one format
+- `related_policy_bundle`: at least one `policy_id` and at least one format
+- `cited_sections_only`: at least one `cited_section_id` and no `policy_ids`
+- `evidence_bundle`: at least one `policy_id` or `cited_section_id`
+- `machine_readable_json`: at least one `policy_id` or `cited_section_id`
+
 Created exports move through `running`, `completed`, or `failed`. Successful records store only the relative ZIP key, for example `exports/{export_id}/policy_export_bundle.zip`.
 
 `GET /api/exports/{export_id}` returns the export record, formats, storage key, manifest, timestamps, and status.

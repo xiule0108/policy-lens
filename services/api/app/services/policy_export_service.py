@@ -130,10 +130,23 @@ def validate_export_request(payload: PolicyOriginalExportRequest) -> None:
     has_section_ids = bool(payload.cited_section_ids)
     if not has_policy_ids and not has_section_ids:
         raise PolicyExportValidationError("policy_ids or cited_section_ids must be provided.")
-    if payload.mode == "single_policy_full_text" and len(payload.policy_ids) != 1:
-        raise PolicyExportValidationError("single_policy_full_text requires exactly one policy_id.")
-    if payload.mode == "cited_sections_only" and not has_section_ids:
-        raise PolicyExportValidationError("cited_sections_only requires cited_section_ids.")
+    if payload.mode == "single_policy_full_text":
+        if len(payload.policy_ids) != 1:
+            raise PolicyExportValidationError("single_policy_full_text requires exactly one policy_id.")
+        if has_section_ids:
+            raise PolicyExportValidationError("single_policy_full_text does not accept cited_section_ids.")
+        if not payload.formats:
+            raise PolicyExportValidationError("single_policy_full_text requires at least one format.")
+    if payload.mode == "related_policy_bundle":
+        if not has_policy_ids:
+            raise PolicyExportValidationError("related_policy_bundle requires policy_ids.")
+        if not payload.formats:
+            raise PolicyExportValidationError("related_policy_bundle requires at least one format.")
+    if payload.mode == "cited_sections_only":
+        if not has_section_ids:
+            raise PolicyExportValidationError("cited_sections_only requires cited_section_ids.")
+        if has_policy_ids:
+            raise PolicyExportValidationError("cited_sections_only does not accept policy_ids.")
 
 
 def collect_export_data(

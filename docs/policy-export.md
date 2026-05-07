@@ -20,6 +20,14 @@ Exports are synchronous in the v0.1 API process. The export record is created as
 
 Supported policy file formats are `markdown`, `txt`, `html`, and `json`.
 
+Mode-specific request rules:
+
+- `single_policy_full_text`: exactly one `policy_id`, no `cited_section_ids`, and at least one format
+- `related_policy_bundle`: at least one `policy_id` and at least one format
+- `cited_sections_only`: at least one `cited_section_id` and no `policy_ids`
+- `evidence_bundle`: at least one `policy_id` or `cited_section_id`
+- `machine_readable_json`: at least one `policy_id` or `cited_section_id`
+
 ## Bundle Structure
 
 ```text

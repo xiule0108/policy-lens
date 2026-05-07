@@ -193,6 +193,41 @@ def test_policy_export_validation_and_lookup_errors(db_session) -> None:
         )
 
 
+def test_policy_export_mode_combinations_are_validated(db_session) -> None:
+    policy, _version, sections = create_policy_record(db_session)
+
+    invalid_payloads = [
+        PolicyOriginalExportRequest(
+            policy_ids=[policy.id],
+            cited_section_ids=[sections[0].id],
+            mode="single_policy_full_text",
+        ),
+        PolicyOriginalExportRequest(
+            cited_section_ids=[sections[0].id],
+            mode="related_policy_bundle",
+        ),
+        PolicyOriginalExportRequest(
+            policy_ids=[policy.id],
+            cited_section_ids=[sections[0].id],
+            mode="cited_sections_only",
+        ),
+        PolicyOriginalExportRequest(
+            policy_ids=[policy.id],
+            mode="single_policy_full_text",
+            formats=[],
+        ),
+        PolicyOriginalExportRequest(
+            policy_ids=[policy.id],
+            mode="related_policy_bundle",
+            formats=[],
+        ),
+    ]
+
+    for payload in invalid_payloads:
+        with pytest.raises(PolicyExportValidationError):
+            create_policy_original_export(db_session, payload)
+
+
 def test_policy_export_marks_export_failed_when_bundle_writer_errors(db_session, tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(settings, "storage_dir", str(tmp_path))
     policy, _version, _sections = create_policy_record(db_session)

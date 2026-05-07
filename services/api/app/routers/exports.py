@@ -21,7 +21,7 @@ from app.services.policy_export_service import (
     PolicyExportValidationError,
     create_policy_original_export,
 )
-from app.services.storage_service import resolve_storage_path
+from app.services.storage_service import StorageError, resolve_storage_path
 
 router = APIRouter()
 
@@ -67,8 +67,11 @@ def download_export(export_id: UUID, session: Session = Depends(get_session)) ->
         raise HTTPException(status_code=409, detail="Export is not completed.")
     if not export.storage_key:
         raise HTTPException(status_code=404, detail="Export file not found.")
-    export_path = resolve_storage_path(Path(settings.storage_dir), export.storage_key)
-    if not export_path.exists():
+    try:
+        export_path = resolve_storage_path(Path(settings.storage_dir), export.storage_key)
+    except StorageError as exc:
+        raise HTTPException(status_code=404, detail="Export file not found.") from exc
+    if not export_path.exists() or not export_path.is_file():
         raise HTTPException(status_code=404, detail="Export file not found.")
     return FileResponse(
         export_path,
