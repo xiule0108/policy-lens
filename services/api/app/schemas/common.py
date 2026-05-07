@@ -343,6 +343,7 @@ class LLMProvider(BaseModel):
     provider_family: str
     aliases: list[str] = Field(default_factory=list)
     api_key_env: str | None = None
+    api_key_configured: bool = False
     base_url: str | None = None
     model_name: str | None = None
     enabled: bool = False
@@ -362,15 +363,48 @@ class LLMProviderCreate(BaseModel):
     aliases: list[str] = Field(default_factory=list)
     api_key_env: str | None = None
     base_url: str | None = None
-    model_name: str
+    model_name: str | None = None
     enabled: bool = False
     openai_compatible: bool = True
     local_provider: bool = False
 
 
+class LLMProviderTestRequest(BaseModel):
+    model: str | None = None
+    prompt: str = "请用一句话说明你可以正常响应。"
+    timeout_seconds: int = Field(default=30, ge=1, le=300)
+
+
 class LLMProviderTestResponse(BaseModel):
     provider_id: str
-    status: Literal["mock_passed", "mock_failed"]
+    status: Literal["passed", "failed", "not_configured"]
     latency_ms: int
     message: str
+    model: str | None = None
+    token_usage: dict[str, Any] = Field(default_factory=dict)
     evidence: list[EvidenceItem] = Field(default_factory=list)
+
+
+class LLMChatMessage(BaseModel):
+    role: Literal["system", "user", "assistant"]
+    content: str = Field(min_length=1)
+
+
+class LLMChatCompletionRequest(BaseModel):
+    provider_id: str
+    model: str | None = None
+    messages: list[LLMChatMessage] = Field(min_length=1)
+    temperature: float = Field(default=0.2, ge=0, le=2)
+    max_tokens: int | None = Field(default=None, ge=1)
+    timeout_seconds: int = Field(default=60, ge=1, le=300)
+    log_step: bool = True
+    job_id: UUID | None = None
+
+
+class LLMChatCompletionResponse(BaseModel):
+    provider_id: str
+    model: str
+    content: str
+    token_usage: dict[str, Any] = Field(default_factory=dict)
+    latency_ms: int
+    step_id: str | None = None

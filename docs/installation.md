@@ -27,6 +27,13 @@ ALLOWED_UPLOAD_EXTENSIONS=.pdf,.docx,.txt,.md,.markdown,.html,.htm
 CHUNK_MAX_CHARS=2000
 ```
 
+LLM Provider secrets are also environment-based. Keep real values in local `.env` or secret storage, never in committed files:
+
+```bash
+DEEPSEEK_API_KEY=
+CUSTOM_LLM_API_KEY=
+```
+
 ## API Setup
 
 ```bash
@@ -99,6 +106,26 @@ To ingest a policy into the local policy library:
 The ingestion step writes `policies`, `policy_versions`, and `policy_sections`. It requires parsed chunks and does not crawl remote policy sources, run policy association analysis, or call LLMs.
 
 Use `GET /api/policies/{policy_id}/original` to view current normalized policy text.
+
+## LLM Gateway
+
+Provider configs are managed through:
+
+```bash
+curl -X POST http://localhost:8000/api/llm/providers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider_id": "openai_compatible_custom",
+    "display_name": "Custom Gateway",
+    "provider_family": "openai_compatible",
+    "base_url": "https://example.com/v1",
+    "api_key_env": "CUSTOM_LLM_API_KEY",
+    "model_name": "<user-configured-model>",
+    "enabled": true
+  }'
+```
+
+The database stores only `api_key_env`, not the secret value. `POST /api/llm/providers/{provider_id}/test` and `POST /api/llm/chat` make real OpenAI-compatible `/chat/completions` calls when the provider is configured. CI tests mock these calls and do not require real API keys.
 
 ## Policy Export
 

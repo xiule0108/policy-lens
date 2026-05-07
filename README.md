@@ -11,7 +11,7 @@ PolicyLens 是一个开源的政策与市场研究解析工作台。项目面向
 - 政策原文 ZIP 导出，保留来源、时间戳和 sha256 checksum
 - 政策影响矩阵、市场传导链、事实核查和图谱工作台页面
 - 研究报告导出 API 骨架
-- 中国主流大模型和 OpenAI-compatible Provider 接入预设
+- 中国主流大模型和 OpenAI-compatible Provider 配置、连接测试和基础 chat 调用
 
 ## v0.1 Scope And Roadmap
 
@@ -22,10 +22,10 @@ PolicyLens 是一个开源的政策与市场研究解析工作台。项目面向
 - PostgreSQL schema、SQLAlchemy models、Alembic migration 和 repository 层已经建立
 - 本地文件上传、基础文档解析、chunk 入库、政策入库和政策原文 ZIP 导出已经跑通
 - Qdrant 和 worker 仍以服务预留为主
-- LLM Gateway 只完成 Provider 配置和测试接口骨架
+- LLM Gateway 已支持 OpenAI-compatible chat 调用、Provider 连接测试和不落库密钥读取
 - 政策原文导出已经支持本地 ZIP bundle、manifest 和 sha256 checksums
 
-当前提交暂未实现 OCR、完整检索、rerank、向量化、真实模型调用、报告生成和生产级任务队列；这些属于 v0.1 release roadmap。权限系统和政策来源自动抓取可后续迭代。
+当前提交暂未实现 OCR、完整检索、rerank、向量化、streaming、报告生成和生产级任务队列；这些属于 v0.1 release roadmap。权限系统和政策来源自动抓取可后续迭代。
 
 ## Tech Stack
 
@@ -36,7 +36,7 @@ PolicyLens 是一个开源的政策与市场研究解析工作台。项目面向
 - Vector DB: Qdrant
 - Object Storage: local filesystem, MinIO reserved
 - Worker: Python worker skeleton
-- LLM Gateway: LiteLLM / OpenAI-compatible adapter reserved
+- LLM Gateway: OpenAI-compatible provider adapter, LiteLLM reserved
 - Deployment: Docker Compose
 
 ## Local Development
@@ -66,6 +66,15 @@ export MAX_UPLOAD_SIZE_MB=50
 export ALLOWED_UPLOAD_EXTENSIONS=.pdf,.docx,.txt,.md,.markdown,.html,.htm
 export CHUNK_MAX_CHARS=2000
 ```
+
+Configure model provider secrets through environment variables only:
+
+```bash
+export DEEPSEEK_API_KEY=...
+export CUSTOM_LLM_API_KEY=...
+```
+
+Provider records store the environment variable name, base URL, and user-chosen model name. They never store or return the API key value.
 
 Start the web app locally:
 
@@ -239,7 +248,7 @@ PolicyLens will support user-configured model names across these Provider famili
 - OpenAI-compatible Custom Provider
 - Local Provider / Ollama / vLLM
 
-The project does not hard-code concrete model names. Users configure model IDs and credentials through environment variables or future UI settings.
+The project does not hard-code concrete model names. Users configure model IDs, OpenAI-compatible base URLs, and credential environment variable names through the API or future UI settings. `POST /api/llm/providers/{provider_id}/test` and `POST /api/llm/chat` make real OpenAI-compatible calls when a provider has `base_url`, `model_name`, and either a configured API key env var or `local_provider=true`.
 
 ## Policy Original Export Guarantees
 

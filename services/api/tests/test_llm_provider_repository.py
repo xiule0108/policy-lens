@@ -1,4 +1,4 @@
-from app.repositories.llm_providers import get_provider, list_providers, upsert_provider
+from app.repositories.llm_providers import delete_provider, get_provider, list_providers, upsert_provider
 
 
 def test_llm_provider_repository_upserts_by_provider_key(db_session) -> None:
@@ -31,3 +31,7 @@ def test_llm_provider_repository_upserts_by_provider_key(db_session) -> None:
     assert updated.display_name == "Custom Provider Updated"
     assert updated.enabled is False
     assert [item.provider_key for item in list_providers(db_session)] == ["custom"]
+
+    assert delete_provider(db_session, "custom") is True
+    assert get_provider(db_session, "custom") is None
+    assert delete_provider(db_session, "custom") is False
