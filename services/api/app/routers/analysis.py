@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -67,7 +69,7 @@ def create_analysis_job(
 
 
 @router.get("/jobs/{job_id}", response_model=AnalysisJobResponse)
-def get_analysis_job(job_id: str, session: Session = Depends(get_session)) -> AnalysisJobResponse:
+def get_analysis_job(job_id: UUID, session: Session = Depends(get_session)) -> AnalysisJobResponse:
     job = repo_get_analysis_job(session, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Analysis job not found.")
@@ -76,7 +78,7 @@ def get_analysis_job(job_id: str, session: Session = Depends(get_session)) -> An
 
 
 @router.get("/jobs/{job_id}/steps", response_model=AnalysisStepListResponse)
-def get_analysis_job_steps(job_id: str, session: Session = Depends(get_session)) -> AnalysisStepListResponse:
+def get_analysis_job_steps(job_id: UUID, session: Session = Depends(get_session)) -> AnalysisStepListResponse:
     job = repo_get_analysis_job(session, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Analysis job not found.")
@@ -84,7 +86,7 @@ def get_analysis_job_steps(job_id: str, session: Session = Depends(get_session))
 
 
 @router.get("/jobs/{job_id}/plan")
-def get_analysis_job_plan(job_id: str, session: Session = Depends(get_session)) -> dict:
+def get_analysis_job_plan(job_id: UUID, session: Session = Depends(get_session)) -> dict:
     job = repo_get_analysis_job(session, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Analysis job not found.")
@@ -95,7 +97,7 @@ def get_analysis_job_plan(job_id: str, session: Session = Depends(get_session)) 
 
 
 @router.get("/jobs/{job_id}/result", response_model=AnalysisResultResponse)
-def get_analysis_job_result(job_id: str, session: Session = Depends(get_session)) -> AnalysisResultResponse:
+def get_analysis_job_result(job_id: UUID, session: Session = Depends(get_session)) -> AnalysisResultResponse:
     job = repo_get_analysis_job(session, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Analysis job not found.")

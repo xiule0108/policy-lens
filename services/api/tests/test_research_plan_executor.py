@@ -165,3 +165,22 @@ def test_research_plan_executor_marks_job_failed_on_step_error(db_session) -> No
     assert failed_job.status == "failed"
     assert failed_job.error_message
     assert parse_step.status == "failed"
+
+
+def test_research_plan_executor_marks_job_failed_when_result_persistence_fails(db_session, monkeypatch) -> None:
+    project = create_project(db_session, {"name": "Persist failure project"})
+    document = create_research_document(db_session, project.id, parse_status="parsed")
+    job, plan = build_job_and_plan(db_session, project.id, document.id)
+
+    def fail_persist(*args, **kwargs):
+        raise RuntimeError("persist failed")
+
+    monkeypatch.setattr("app.research.plan_executor._persist_result", fail_persist)
+
+    with pytest.raises(RuntimeError, match="persist failed"):
+        execute_research_plan(db_session, job.id, plan)
+
+    failed_job = get_analysis_job(db_session, job.id)
+    assert failed_job.status == "failed"
+    assert "persist failed" in failed_job.error_message
+    assert failed_job.finished_at is not None

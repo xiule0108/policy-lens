@@ -73,7 +73,18 @@ def execute_research_plan(session: Session, job_id: UUID | str, plan: ResearchPl
                     finished_at=utc_now(),
                 )
                 raise
-        result = _persist_result(session, job_id, plan, step_outputs)
+        try:
+            result = _persist_result(session, job_id, plan, step_outputs)
+        except Exception as exc:
+            update_analysis_job_status(
+                session,
+                job_id,
+                status="failed",
+                progress=0.95,
+                error_message=_short_error(exc),
+                finished_at=utc_now(),
+            )
+            raise
         update_analysis_job_status(session, job_id, status="completed", progress=1.0, finished_at=utc_now())
         return result
     except Exception:

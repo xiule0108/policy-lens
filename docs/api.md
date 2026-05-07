@@ -135,6 +135,8 @@ The default plan runs:
 
 The executor records a `research_plan` step, then records each step as `running`, `done`, `skipped`, or `failed`. Jobs move through `queued`, `running`, `completed`, or `failed`. Failed jobs store a short error summary without a traceback.
 
+Analysis job route parameters are UUIDs. Malformed job IDs return `422`; well-formed but unknown job IDs return `404`.
+
 `GET /api/analysis/jobs/{job_id}/steps` returns persisted `analysis_steps`.
 
 `GET /api/analysis/jobs/{job_id}/plan` returns the plan stored in the `research_plan` step.

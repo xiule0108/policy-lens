@@ -132,3 +132,19 @@ def test_analysis_api_validates_project_document_and_empty_document_ids() -> Non
         json={"project_id": project_id, "document_ids": [document_id]},
     )
     assert wrong_project.status_code == 409
+
+
+def test_analysis_api_rejects_invalid_job_id_uuid() -> None:
+    assert client.get("/api/analysis/jobs/not-a-uuid").status_code == 422
+    assert client.get("/api/analysis/jobs/not-a-uuid/steps").status_code == 422
+    assert client.get("/api/analysis/jobs/not-a-uuid/plan").status_code == 422
+    assert client.get("/api/analysis/jobs/not-a-uuid/result").status_code == 422
+
+
+def test_analysis_api_returns_404_for_valid_missing_job_id() -> None:
+    missing_job_id = "11111111-1111-4111-8111-111111111111"
+
+    assert client.get(f"/api/analysis/jobs/{missing_job_id}").status_code == 404
+    assert client.get(f"/api/analysis/jobs/{missing_job_id}/steps").status_code == 404
+    assert client.get(f"/api/analysis/jobs/{missing_job_id}/plan").status_code == 404
+    assert client.get(f"/api/analysis/jobs/{missing_job_id}/result").status_code == 404
