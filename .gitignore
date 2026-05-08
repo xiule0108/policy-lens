@@ -24,6 +24,8 @@ venv/
 /storage/
 /services/api/storage/
 policy_export_bundle*/
+report_export_bundle*/
+*.zip
 dist/
 build/
 .coverage

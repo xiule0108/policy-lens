@@ -2,6 +2,8 @@
 
 PolicyLens exports normalized policy originals and evidence data from the local policy library. The exporter reads `policies`, `policy_versions`, and `policy_sections`; it does not crawl remote policy sources or copy uploaded source files into the bundle.
 
+This document covers policy original export and the adjacent report export bundle available in `v0.1.0-alpha`.
+
 ## API
 
 - `POST /api/exports/policy-originals`

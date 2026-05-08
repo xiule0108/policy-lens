@@ -1,4 +1,4 @@
-# Model Providers Draft
+# Model Providers
 
 PolicyLens v0.1 includes an OpenAI-compatible LLM Gateway for provider configuration, connection tests, and basic chat calls. It does not hard-code concrete model names. Users configure the model name, base URL, and API key environment variable.
 
@@ -42,6 +42,7 @@ Provider tests and chat calls are not run against real external services in CI. 
 ## Current Limitations
 
 - Streaming responses are not implemented.
-- Embeddings, RAG, Qdrant writes, policy matching, and report generation are out of scope for Task 07.
+- Embeddings, RAG, Qdrant writes, and model-based policy reasoning are not implemented in v0.1.
+- The default Research Plan, evidence chain, impact matrix, and report draft are deterministic and do not require LLM credentials.
 - Provider-specific SDKs are intentionally not used; all calls go through the OpenAI-compatible HTTP contract.
 - Model profile APIs are not exposed yet, but repository functions exist for later Research Plan execution.

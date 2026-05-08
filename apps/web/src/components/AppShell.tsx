@@ -28,9 +28,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="absolute bottom-6 left-5 right-5 rounded-md border border-line bg-paper p-4 text-xs leading-5 text-zinc-600">
-          v0.1 mock workspace
+          v0.1.0-alpha
           <br />
-          API contracts first
+          Deterministic draft · human review
         </div>
       </aside>
       <header className="border-b border-line bg-white px-5 py-4 lg:hidden">

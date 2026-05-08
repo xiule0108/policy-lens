@@ -7,7 +7,7 @@ from app.routers import analysis, documents, exports, health, llm, policies, pro
 app = FastAPI(
     title="PolicyLens API",
     description="v0.1 API skeleton for policy and market research analysis.",
-    version="0.1.0",
+    version="0.1.0-alpha",
 )
 
 app.add_middleware(

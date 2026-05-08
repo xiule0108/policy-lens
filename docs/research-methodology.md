@@ -1,4 +1,4 @@
-# Research Methodology Draft
+# Research Methodology
 
 PolicyLens should support research workflows that remain auditable.
 
@@ -9,6 +9,8 @@ All generated analysis should keep three categories separate:
 - original facts from uploaded documents
 - retrieved facts from policy search and external evidence
 - model reasoning and interpretation
+
+In v0.1.0-alpha, the default deterministic path leaves `model_reasoning` empty.
 
 ## Evidence Chain
 

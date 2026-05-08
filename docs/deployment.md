@@ -1,4 +1,4 @@
-# Deployment Draft
+# Deployment
 
 PolicyLens v0.1 ships a Docker Compose stack for local and development deployment.
 
@@ -72,6 +72,20 @@ To inspect migration state inside the API container:
 ```bash
 docker compose exec api alembic current
 docker compose exec api alembic history
+```
+
+## Manual Health Check
+
+The v0.1 Compose file does not define container healthchecks. Use the API health endpoint manually:
+
+```bash
+curl http://localhost:8000/api/health
+```
+
+For a fuller smoke test after migrations:
+
+```bash
+python3 scripts/e2e_demo.py
 ```
 
 ## Ports

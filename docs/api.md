@@ -1,12 +1,14 @@
-# API Draft
+# API Reference
 
 The FastAPI service is mounted under `/api`.
+
+Current release candidate: `v0.1.0-alpha`.
 
 ## Health
 
 - `GET /api/health`
 
-Returns service status and mock dependency states.
+Returns service status, API version, and dependency status summaries.
 
 ## Projects
 
@@ -264,6 +266,8 @@ The database stores only the relative ZIP key, for example `exports/{export_id}/
 
 The download endpoint returns `409` if the export is not completed and never exposes the server absolute path.
 
+The v0.1 report exporter is deterministic and does not produce PPT, DOCX, or PDF files.
+
 ## LLM
 
 - `GET /api/llm/providers`
@@ -311,6 +315,7 @@ The following API surfaces have light database integration:
 - `GET /api/llm/providers`
 - `POST /api/llm/providers`
 - `POST /api/exports/policy-originals`
+- `POST /api/exports/report`
 - `GET /api/exports/{export_id}`
 - `GET /api/exports/{export_id}/download`
 - `POST /api/analysis/jobs`
