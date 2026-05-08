@@ -21,6 +21,10 @@ from app.services.policy_export_service import (
     PolicyExportValidationError,
     create_policy_original_export,
 )
+from app.services.report_export_service import (
+    ReportExportNotFoundError,
+    ReportExportValidationError,
+)
 from app.services.storage_service import StorageError, resolve_storage_path
 
 router = APIRouter()
@@ -76,10 +80,23 @@ def download_export(export_id: UUID, session: Session = Depends(get_session)) ->
     return FileResponse(
         export_path,
         media_type="application/zip",
-        filename=f"policy_export_{export.id}.zip",
+        filename=download_filename(export.export_type, export.id),
     )
 
 
 @router.post("/report", response_model=ExportResponse, status_code=202)
-def export_report(payload: ReportExportRequest) -> ExportResponse:
-    return create_report_export(payload)
+def export_report(payload: ReportExportRequest, session: Session = Depends(get_session)) -> ExportResponse:
+    try:
+        return create_report_export(payload, session=session)
+    except ReportExportNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ReportExportValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+def download_filename(export_type: str, export_id: UUID) -> str:
+    if export_type == "policy_originals":
+        return f"policy_export_{export_id}.zip"
+    if export_type == "report":
+        return f"report_export_{export_id}.zip"
+    return f"export_{export_id}.zip"

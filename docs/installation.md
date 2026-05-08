@@ -56,10 +56,13 @@ curl http://localhost:8000/api/health
 ```bash
 cd apps/web
 npm install
+export NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 npm run dev
 ```
 
 Open http://localhost:3000.
+
+`NEXT_PUBLIC_API_BASE_URL` is read by client-side pages. If it is omitted, the web app defaults to `http://localhost:8000`. The Next.js build does not require the backend to be running.
 
 ## Worker Setup
 
@@ -156,7 +159,13 @@ curl http://localhost:8000/api/analysis/jobs/<job_id>/impact-matrix
 curl http://localhost:8000/api/analysis/jobs/<job_id>/report
 ```
 
-The current engine runs deterministic steps and does not require LLM credentials. It can parse pending documents, collect chunks, extract simple signals, extract basic claims, retrieve local policy candidates with SQL keyword matching, match claims to policy sections, write `policy_matches`, persist an evidence map, generate `impact_items`, and draft `analysis_results.report_markdown`. It does not run Qdrant, embeddings, RAG, complex policy reasoning, LLM judgment, formal investment advice, or production report export.
+The current engine runs deterministic steps and does not require LLM credentials. It can parse pending documents, collect chunks, extract simple signals, extract basic claims, retrieve local policy candidates with SQL keyword matching, match claims to policy sections, write `policy_matches`, persist an evidence map, generate `impact_items`, and draft `analysis_results.report_markdown`. It does not run Qdrant, embeddings, RAG, complex policy reasoning, LLM judgment, formal investment advice, or formal report writing.
+
+List historical jobs for a project:
+
+```bash
+curl "http://localhost:8000/api/analysis/jobs?project_id=<project_id>"
+```
 
 ## Policy Export
 
@@ -191,6 +200,38 @@ curl -OJ http://localhost:8000/api/exports/<export_id>/download
 ```
 
 Supported modes are `single_policy_full_text`, `related_policy_bundle`, `cited_sections_only`, `evidence_bundle`, and `machine_readable_json`. The v0.1 exporter does not include raw web or PDF snapshots.
+
+## Report Export
+
+After a Research Plan job has completed, create a report bundle with:
+
+```bash
+curl -X POST http://localhost:8000/api/exports/report \
+  -H "Content-Type: application/json" \
+  -d '{
+    "job_id": "<job_id>",
+    "formats": ["markdown", "json", "html"],
+    "include_evidence_bundle": true,
+    "include_impact_matrix": true,
+    "include_policy_matches": true
+  }'
+```
+
+The API writes:
+
+```text
+exports/{export_id}/report_export_bundle.zip
+```
+
+The ZIP contains `manifest.json`, `reports/report.md`, `reports/report.json`, optional `reports/report.html`, evidence JSON, impact matrix JSON, policy matches JSON, and `checksums/sha256.txt`.
+
+Download it with the shared export download endpoint:
+
+```bash
+curl -OJ http://localhost:8000/api/exports/<export_id>/download
+```
+
+Report export supports only `markdown`, `json`, and `html`. PPT, DOCX, and PDF report exports are not supported in v0.1.
 
 ## Migration Checks
 

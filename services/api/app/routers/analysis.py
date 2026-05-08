@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.models import AnalysisJob as AnalysisJobModel
@@ -14,6 +16,7 @@ from app.db.models import PolicyMatch as PolicyMatchModel
 from app.db.session import get_session
 from app.repositories.analysis_jobs import create_analysis_job as repo_create_analysis_job
 from app.repositories.analysis_jobs import get_analysis_job as repo_get_analysis_job
+from app.repositories.analysis_jobs import list_analysis_jobs as repo_list_analysis_jobs
 from app.repositories.analysis_results import get_analysis_result_by_job_id
 from app.repositories.analysis_steps import get_analysis_step_by_step_id, list_analysis_steps
 from app.repositories.claims import list_claims
@@ -27,6 +30,7 @@ from app.schemas.common import (
     AnalysisClaimListResponse,
     AnalysisClaimResponse,
     AnalysisEvidenceResponse,
+    AnalysisJobListResponse,
     AnalysisJobRequest,
     AnalysisJobResponse,
     AnalysisReportResponse,
@@ -80,6 +84,27 @@ def create_analysis_job(
 
     refreshed = repo_get_analysis_job(session, job.id) or job
     return _to_job_response(refreshed, result_id=str(result.id))
+
+
+@router.get("/jobs", response_model=AnalysisJobListResponse)
+def list_analysis_job_records(
+    project_id: UUID | None = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    session: Session = Depends(get_session),
+) -> AnalysisJobListResponse:
+    if project_id is not None and get_project(session, project_id) is None:
+        raise HTTPException(status_code=404, detail="Project not found.")
+    jobs = repo_list_analysis_jobs(session, project_id=project_id, limit=limit, offset=offset)
+    return AnalysisJobListResponse(
+        items=[
+            _to_job_response(
+                job,
+                result_id=str(result.id) if (result := get_analysis_result_by_job_id(session, job.id)) else None,
+            )
+            for job in jobs
+        ]
+    )
 
 
 @router.get("/jobs/{job_id}", response_model=AnalysisJobResponse)

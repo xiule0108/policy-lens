@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 ExportMode = Literal[
@@ -15,6 +15,7 @@ ExportMode = Literal[
 
 DocumentRole = Literal["research_article", "policy", "appendix"]
 ExportFormat = Literal["markdown", "txt", "html", "json"]
+ReportExportFormat = Literal["markdown", "json", "html"]
 
 
 class SourceRef(BaseModel):
@@ -314,6 +315,10 @@ class AnalysisJobResponse(BaseModel):
     finished_at: datetime | None = None
 
 
+class AnalysisJobListResponse(BaseModel):
+    items: list[AnalysisJobResponse]
+
+
 class AnalysisStepResponse(BaseModel):
     id: str
     job_id: str
@@ -435,10 +440,21 @@ class PolicyOriginalExportRequest(BaseModel):
 
 
 class ReportExportRequest(BaseModel):
-    project_id: str
-    report_format: Literal["markdown", "docx", "pdf", "json"] = "markdown"
-    include_policy_originals: bool = True
+    project_id: UUID | None = None
+    job_id: UUID | None = None
+    analysis_id: UUID | None = None
+    formats: list[ReportExportFormat] = Field(default_factory=lambda: ["markdown", "json"])
+    report_format: ReportExportFormat | None = None
     include_evidence_bundle: bool = True
+    include_impact_matrix: bool = True
+    include_policy_matches: bool = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def apply_legacy_report_format(cls, data):
+        if isinstance(data, dict) and data.get("report_format") and "formats" not in data:
+            return {**data, "formats": [data["report_format"]]}
+        return data
 
 
 class ExportResponse(BaseModel):

@@ -5,6 +5,7 @@ PolicyLens exports normalized policy originals and evidence data from the local 
 ## API
 
 - `POST /api/exports/policy-originals`
+- `POST /api/exports/report`
 - `GET /api/exports/{export_id}`
 - `GET /api/exports/{export_id}/download`
 
@@ -106,4 +107,27 @@ exports/{export_id}/policy_export_bundle.zip
 
 ## Current Limits
 
-The exporter does not generate DOCX, PDF, PPT, or research reports. It does not run RAG, embeddings, LLMs, policy association analysis, or legal validity checks.
+The policy original exporter does not generate DOCX, PDF, PPT, or research reports. It does not run RAG, embeddings, LLMs, policy association analysis, or legal validity checks.
+
+## Report Export Bundle
+
+Research report exports are handled by `POST /api/exports/report`, separate from the policy original exporter. The report exporter reads an existing `analysis_results` row by `analysis_id` or `job_id` and writes:
+
+```text
+report_export_bundle.zip
+  manifest.json
+  reports/
+    report.md
+    report.html
+    report.json
+  evidence/
+    evidence.json
+  impact_matrix/
+    impact_matrix.json
+  policy_matches/
+    policy_matches.json
+  checksums/
+    sha256.txt
+```
+
+Supported report formats are `markdown`, `json`, and `html`. DOCX, PDF, and PPT are intentionally unsupported in v0.1. The report bundle packages the deterministic Markdown draft and machine-readable evidence data; it is not a formal investment report or LLM-reviewed conclusion.

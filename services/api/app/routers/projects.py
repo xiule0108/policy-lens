@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.models import Project as ProjectModel
 from app.db.session import get_session
 from app.repositories.projects import create_project as repo_create_project
+from app.repositories.projects import get_project as repo_get_project
 from app.repositories.projects import list_projects as repo_list_projects
 from app.schemas.common import Project, ProjectCreate, ProjectListResponse
 
@@ -27,6 +30,14 @@ def create_project(payload: ProjectCreate, session: Session = Depends(get_sessio
             "default_model_profile": payload.default_model_profile,
         },
     )
+    return _to_project_schema(project)
+
+
+@router.get("/{project_id}", response_model=Project)
+def get_project(project_id: UUID, session: Session = Depends(get_session)) -> Project:
+    project = repo_get_project(session, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found.")
     return _to_project_schema(project)
 
 
