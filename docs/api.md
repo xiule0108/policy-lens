@@ -117,6 +117,8 @@ This task does not crawl policies, judge policy legal validity, or perform polic
 - `GET /api/analysis/jobs/{job_id}/claims`
 - `GET /api/analysis/jobs/{job_id}/policy-matches`
 - `GET /api/analysis/jobs/{job_id}/evidence`
+- `GET /api/analysis/jobs/{job_id}/impact-matrix`
+- `GET /api/analysis/jobs/{job_id}/report`
 
 `POST /api/analysis/jobs` creates an `analysis_jobs` row, builds a Research Plan, and executes it synchronously in v0.1. The request requires a project UUID and at least one document UUID. The current implementation uses the first document only.
 
@@ -137,7 +139,9 @@ The default plan runs:
 - `retrieve_policy_candidates`
 - `match_policy_sections`
 - `build_evidence_map`
+- `build_impact_matrix`
 - `summarize_findings`
+- `draft_markdown_report`
 
 The executor records a `research_plan` step, then records each step as `running`, `done`, `skipped`, or `failed`. Jobs move through `queued`, `running`, `completed`, or `failed`. Failed jobs store a short error summary without a traceback.
 
@@ -155,6 +159,10 @@ Analysis job route parameters are UUIDs. Malformed job IDs return `422`; well-fo
 
 `GET /api/analysis/jobs/{job_id}/evidence` returns `report_json.claim_policy_map` and `report_json.fact_boundaries`.
 
+`GET /api/analysis/jobs/{job_id}/impact-matrix` returns persisted `impact_items` tied to the job's `analysis_results` row.
+
+`GET /api/analysis/jobs/{job_id}/report` returns `analysis_results.report_markdown`, `report_json.report_outline`, and factual boundaries.
+
 Analysis results keep factual boundaries:
 
 - original facts from uploaded article
@@ -167,7 +175,7 @@ The v0.1 evidence chain is rule based:
 document chunk -> claim -> policy section -> policy_match -> evidence map
 ```
 
-It uses deterministic sentence and keyword rules plus SQL-backed policy section matching. It is not Qdrant, embedding retrieval, RAG, reranking, or LLM judgment. `model_reasoning` stays empty in the default path.
+It uses deterministic sentence and keyword rules plus SQL-backed policy section matching. Impact matrix and Markdown report generation are also rule based. They are not Qdrant, embedding retrieval, RAG, reranking, LLM judgment, legal advice, or investment advice. `model_reasoning` stays empty in the default path.
 
 ## Exports
 
@@ -265,6 +273,8 @@ The following API surfaces have light database integration:
 - `GET /api/analysis/jobs/{job_id}/claims`
 - `GET /api/analysis/jobs/{job_id}/policy-matches`
 - `GET /api/analysis/jobs/{job_id}/evidence`
+- `GET /api/analysis/jobs/{job_id}/impact-matrix`
+- `GET /api/analysis/jobs/{job_id}/report`
 - `GET /api/policies`
 - `POST /api/policies/from-document`
 - `POST /api/policies/search`

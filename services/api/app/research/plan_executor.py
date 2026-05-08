@@ -9,6 +9,7 @@ from app.db.base import utc_now
 from app.repositories.analysis_jobs import get_analysis_job, update_analysis_job_status
 from app.repositories.analysis_results import create_analysis_result
 from app.repositories.analysis_steps import create_analysis_step, update_analysis_step
+from app.repositories.impact_items import create_impact_items
 from app.repositories.policy_matches import create_policy_matches
 from app.research.plan_schema import ResearchPlan
 from app.research.step_registry import get_step_handler
@@ -108,6 +109,9 @@ def _record_plan_step(session: Session, job_id, plan: ResearchPlan) -> None:
 
 def _persist_result(session: Session, job_id, plan: ResearchPlan, step_outputs: dict[str, dict]):
     summary_output = step_outputs.get("summarize_findings", {})
+    impact_output = step_outputs.get("build_impact_matrix", {})
+    report_output = step_outputs.get("draft_markdown_report", {})
+    impact_matrix = impact_output.get("impact_matrix", [])
     result = create_analysis_result(
         session,
         {
@@ -116,7 +120,8 @@ def _persist_result(session: Session, job_id, plan: ResearchPlan, step_outputs: 
             "summary": summary_output.get("summary", {}),
             "claims": summary_output.get("claims", []),
             "related_policies": summary_output.get("related_policies", []),
-            "impact_matrix": summary_output.get("impact_matrix", []),
+            "impact_matrix": impact_matrix,
+            "report_markdown": report_output.get("report_markdown"),
             "report_json": {
                 "research_plan": plan.model_dump(mode="json"),
                 "step_outputs": step_outputs,
@@ -125,10 +130,12 @@ def _persist_result(session: Session, job_id, plan: ResearchPlan, step_outputs: 
                     "fact_boundaries",
                     {"original_facts": [], "retrieved_facts": [], "model_reasoning": []},
                 ),
+                "report_outline": report_output.get("report_outline", {}),
             },
         },
     )
     _persist_policy_matches(session, result.id, step_outputs.get("match_policy_sections", {}).get("matches", []))
+    _persist_impact_items(session, result.id, impact_matrix)
     return result
 
 
@@ -137,6 +144,13 @@ def _persist_policy_matches(session: Session, analysis_id, matches: list[dict]) 
         return
     records = [{**match, "analysis_id": analysis_id} for match in matches]
     create_policy_matches(session, records)
+
+
+def _persist_impact_items(session: Session, analysis_id, items: list[dict]) -> None:
+    if not items:
+        return
+    records = [{**item, "analysis_id": analysis_id} for item in items]
+    create_impact_items(session, records)
 
 
 def _short_error(exc: Exception) -> str:
