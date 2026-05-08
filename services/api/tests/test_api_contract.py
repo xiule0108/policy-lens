@@ -10,7 +10,12 @@ client = TestClient(app)
 def test_health_returns_ok() -> None:
     response = client.get("/api/health")
     assert response.status_code == 200
-    assert response.json()["status"] == "ok"
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["version"] == "0.1.0-alpha"
+    assert payload["dependencies"]["storage"]["status"] == "configured"
+    assert payload["dependencies"]["storage"]["mode"] == "local_filesystem"
+    assert payload["dependencies"]["vector_store"]["status"] == "not_connected"
 
 
 def test_provider_presets_include_china_and_custom_options() -> None:

@@ -62,6 +62,7 @@ Check:
 - `MAX_UPLOAD_SIZE_MB`
 - `ALLOWED_UPLOAD_EXTENSIONS`
 - `STORAGE_DIR` exists and is writable
+- `/api/health` reports `storage.mode=local_filesystem`
 - `project_id` exists
 - file is not empty
 

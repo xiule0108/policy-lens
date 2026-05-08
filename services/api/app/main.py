@@ -6,7 +6,7 @@ from app.routers import analysis, documents, exports, health, llm, policies, pro
 
 app = FastAPI(
     title="PolicyLens API",
-    description="v0.1 API skeleton for policy and market research analysis.",
+    description="PolicyLens v0.1.0-alpha API for policy and market research analysis workflows.",
     version="0.1.0-alpha",
 )
 

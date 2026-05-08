@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 
@@ -34,3 +35,10 @@ def test_demo_policy_is_clearly_marked_as_fictional_example() -> None:
     assert "【示例数据】" in demo_policy
     assert "虚构政策文本" in demo_policy
     assert "不代表真实政策文件" in demo_policy
+
+
+def test_e2e_demo_shell_script_is_executable() -> None:
+    script = REPO_ROOT / "scripts/e2e_demo.sh"
+
+    assert script.is_file()
+    assert os.access(script, os.X_OK)

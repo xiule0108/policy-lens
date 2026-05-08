@@ -82,6 +82,8 @@ The v0.1 Compose file does not define container healthchecks. Use the API health
 curl http://localhost:8000/api/health
 ```
 
+The health response reports local upload/export storage as `configured` with `mode=local_filesystem`. Qdrant remains reserved for future retrieval work and is not connected to the v0.1 deterministic workflow.
+
 For a fuller smoke test after migrations:
 
 ```bash
