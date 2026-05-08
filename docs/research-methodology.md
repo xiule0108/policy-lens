@@ -49,7 +49,7 @@ Task 08 introduces a synchronous Research Plan execution engine. It is intention
 - `POST /api/analysis/jobs` creates an `analysis_jobs` row.
 - The plan builder writes a `research_plan` step with the full plan JSON.
 - The executor runs each step in order and persists `analysis_steps`.
-- The executor writes one `analysis_results` row with summary, claims, related policies, empty impact matrix, and `report_json`.
+- The executor writes one `analysis_results` row with summary, claims, related policies, impact matrix, Markdown report, and `report_json`.
 
 Default steps:
 
@@ -60,7 +60,9 @@ Default steps:
 5. `retrieve_policy_candidates`
 6. `match_policy_sections`
 7. `build_evidence_map`
-8. `summarize_findings`
+8. `build_impact_matrix`
+9. `summarize_findings`
+10. `draft_markdown_report`
 
 The current policy retrieval is SQL-backed keyword matching over local `policies` and `policy_sections`. It is not vector retrieval, embedding search, reranking, or RAG.
 
@@ -84,6 +86,14 @@ The evidence API exposes:
 
 This matching is not legal interpretation, RAG, embedding retrieval, or LLM reasoning. `model_reasoning` remains empty in the deterministic path.
 
+## Impact Matrix And Report Draft
+
+Task 10 adds deterministic impact matrix and Markdown report generation. Impact items are derived from claims, policy matches, and evidence maps, then persisted to `impact_items` with citations that include claim ids, policy match ids, source chunk ids, policy section ids, policy quotes, and matched terms.
+
+The Markdown report draft is saved to `analysis_results.report_markdown`. Its outline is saved to `analysis_results.report_json.report_outline` with `generation_method=deterministic_rule_based` and `llm_used=false`.
+
+The report and impact matrix are research aids only. They are not formal investment advice, legal advice, or a substitute for human policy review.
+
 ## v0.1 Scope
 
-The current repository now supports upload, deterministic parsing, chunk storage, policy library ingestion, policy original export, LLM provider gateway configuration, synchronous Research Plan execution, and a basic claim-policy evidence chain. Impact matrix generation and formal report generation are future tasks.
+The current repository now supports upload, deterministic parsing, chunk storage, policy library ingestion, policy original export, LLM provider gateway configuration, synchronous Research Plan execution, a basic claim-policy evidence chain, deterministic impact matrix generation, and a Markdown report draft. Formal report export, LLM review, and richer impact modeling are future tasks.

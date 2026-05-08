@@ -395,6 +395,34 @@ class AnalysisEvidenceResponse(BaseModel):
     fact_boundaries: dict[str, Any] = Field(default_factory=dict)
 
 
+class ImpactItemResponse(BaseModel):
+    id: str
+    project_id: str
+    analysis_id: str | None = None
+    policy_id: str | None = None
+    impact_subject: str | None = None
+    impact_direction: str | None = None
+    impact_horizon: str | None = None
+    impact_mechanism: str | None = None
+    market_variable: str | None = None
+    analysis_text: str
+    confidence: float | None = None
+    citations: list[dict[str, Any]] = Field(default_factory=list)
+    created_at: datetime
+
+
+class ImpactMatrixResponse(BaseModel):
+    items: list[ImpactItemResponse]
+
+
+class AnalysisReportResponse(BaseModel):
+    job_id: str
+    result_id: str
+    report_markdown: str | None = None
+    report_outline: dict[str, Any] = Field(default_factory=dict)
+    fact_boundaries: dict[str, Any] = Field(default_factory=dict)
+
+
 class PolicyOriginalExportRequest(BaseModel):
     project_id: UUID | None = None
     policy_ids: list[UUID] = Field(default_factory=list)

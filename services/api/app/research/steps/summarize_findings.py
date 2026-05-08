@@ -16,10 +16,12 @@ def run_summarize_findings(
     retrieval = step_outputs.get("retrieve_policy_candidates", {})
     policy_matches = step_outputs.get("match_policy_sections", {})
     evidence_map = step_outputs.get("build_evidence_map", {})
+    impact_output = step_outputs.get("build_impact_matrix", {})
     document = context.get("document", {})
     candidates = retrieval.get("candidates", [])
     claims = extracted_claims.get("claims", [])
     matches = policy_matches.get("matches", [])
+    impact_matrix = impact_output.get("impact_matrix", [])
     summary = {
         "document_title": document.get("title"),
         "document_language": document.get("language"),
@@ -28,6 +30,7 @@ def run_summarize_findings(
         "claim_count": len(claims),
         "policy_candidate_count": len(candidates),
         "policy_match_count": len(matches),
+        "impact_count": len(impact_matrix),
     }
     fact_boundaries = evidence_map.get(
         "fact_boundaries",
@@ -38,7 +41,7 @@ def run_summarize_findings(
             "summary": summary,
             "claims": claims,
             "related_policies": candidates,
-            "impact_matrix": [],
+            "impact_matrix": impact_matrix,
             "fact_boundaries": fact_boundaries,
             "claim_policy_map": evidence_map.get("claim_policy_map", []),
             "policy_matches": matches,

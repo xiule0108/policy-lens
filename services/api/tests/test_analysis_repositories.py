@@ -1,6 +1,11 @@
 from app.db.base import utc_now
 from app.repositories.analysis_jobs import create_analysis_job, list_analysis_jobs, update_analysis_job_status
-from app.repositories.analysis_results import create_analysis_result, get_analysis_result, get_analysis_result_by_job_id
+from app.repositories.analysis_results import (
+    create_analysis_result,
+    get_analysis_result,
+    get_analysis_result_by_job_id,
+    update_analysis_result,
+)
 from app.repositories.analysis_steps import (
     create_analysis_step,
     get_analysis_step_by_db_id,
@@ -76,3 +81,17 @@ def test_analysis_job_step_and_result_repositories(db_session) -> None:
 
     assert get_analysis_result(db_session, result.id).id == result.id
     assert get_analysis_result_by_job_id(db_session, job.id).id == result.id
+
+    updated_result = update_analysis_result(
+        db_session,
+        result.id,
+        {
+            "impact_matrix": [{"impact_subject": "grid"}],
+            "report_markdown": "# Updated",
+            "report_json": {"report_outline": {"generation_method": "deterministic_rule_based"}},
+        },
+    )
+
+    assert updated_result.impact_matrix == [{"impact_subject": "grid"}]
+    assert updated_result.report_markdown == "# Updated"
+    assert updated_result.report_json["report_outline"]["generation_method"] == "deterministic_rule_based"

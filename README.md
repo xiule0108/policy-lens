@@ -11,8 +11,8 @@ PolicyLens 是一个开源的政策与市场研究解析工作台。项目面向
 - 政策原文 ZIP 导出，保留来源、时间戳和 sha256 checksum
 - Research Plan 同步执行引擎，记录 job、step 和 result
 - 基础文章 claim 抽取、政策条款匹配和可复核 evidence map
-- 政策影响矩阵、市场传导链、事实核查和图谱工作台页面
-- 研究报告导出 API 骨架
+- 基础政策影响矩阵和 Markdown 研究报告草稿
+- 市场传导链、事实核查和图谱工作台页面
 - 中国主流大模型和 OpenAI-compatible Provider 配置、连接测试和基础 chat 调用
 
 ## v0.1 Scope And Roadmap
@@ -22,12 +22,12 @@ PolicyLens 是一个开源的政策与市场研究解析工作台。项目面向
 - Next.js 前端页面使用 mock 数据
 - FastAPI API 提供 mock 业务结构，并已接入 projects、documents、document_chunks、policies、policy_versions、policy_sections、exports、LLM user providers 的数据库持久化
 - PostgreSQL schema、SQLAlchemy models、Alembic migration 和 repository 层已经建立
-- 本地文件上传、基础文档解析、chunk 入库、政策入库、政策原文 ZIP 导出、Research Plan 同步执行和基础证据链已经跑通
+- 本地文件上传、基础文档解析、chunk 入库、政策入库、政策原文 ZIP 导出、Research Plan 同步执行、基础证据链、影响矩阵和 Markdown 报告草稿已经跑通
 - Qdrant 和 worker 仍以服务预留为主
 - LLM Gateway 已支持 OpenAI-compatible chat 调用、Provider 连接测试和不落库密钥读取
 - 政策原文导出已经支持本地 ZIP bundle、manifest 和 sha256 checksums
 
-当前提交暂未实现 OCR、向量检索、rerank、streaming、完整影响矩阵、正式报告生成和生产级任务队列；这些属于 v0.1 release roadmap。权限系统和政策来源自动抓取可后续迭代。
+当前提交暂未实现 OCR、向量检索、rerank、streaming、正式商业报告排版、PPT/DOCX/PDF 报告导出和生产级任务队列；这些属于 v0.1 release roadmap。权限系统和政策来源自动抓取可后续迭代。
 
 ## Tech Stack
 
@@ -180,7 +180,7 @@ This local policy library does not crawl policy sources, judge legal validity, r
 
 ## Research Plan And Evidence Chain
 
-`POST /api/analysis/jobs` runs the synchronous v0.1 Research Plan engine. The deterministic default path can parse a pending article, collect chunks, extract simple article signals, extract claims, retrieve SQL-backed policy candidates, match claims to policy sections, build an evidence map, and persist `analysis_results`.
+`POST /api/analysis/jobs` runs the synchronous v0.1 Research Plan engine. The deterministic default path can parse a pending article, collect chunks, extract simple article signals, extract claims, retrieve SQL-backed policy candidates, match claims to policy sections, build an evidence map, generate a basic impact matrix, draft a Markdown report, and persist `analysis_results`.
 
 Task 09 adds the first auditable claim-policy evidence chain:
 
@@ -193,8 +193,10 @@ The analysis API exposes:
 - `GET /api/analysis/jobs/{job_id}/claims`
 - `GET /api/analysis/jobs/{job_id}/policy-matches`
 - `GET /api/analysis/jobs/{job_id}/evidence`
+- `GET /api/analysis/jobs/{job_id}/impact-matrix`
+- `GET /api/analysis/jobs/{job_id}/report`
 
-Current matching is deterministic SQL/rule based. It is not Qdrant, embedding search, RAG, reranking, or LLM judgment. `report_json.fact_boundaries.model_reasoning` remains empty unless a future task explicitly adds model review.
+Current matching, impact matrix generation, and Markdown report drafting are deterministic SQL/rule based. They are not Qdrant, embedding search, RAG, reranking, LLM judgment, legal advice, or investment advice. `report_json.fact_boundaries.model_reasoning` remains empty unless a future task explicitly adds model review.
 
 ## Policy Original Export
 

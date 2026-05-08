@@ -9,6 +9,7 @@ from app.db.models import AnalysisJob as AnalysisJobModel
 from app.db.models import AnalysisResult as AnalysisResultModel
 from app.db.models import AnalysisStep as AnalysisStepModel
 from app.db.models import Claim as ClaimModel
+from app.db.models import ImpactItem as ImpactItemModel
 from app.db.models import PolicyMatch as PolicyMatchModel
 from app.db.session import get_session
 from app.repositories.analysis_jobs import create_analysis_job as repo_create_analysis_job
@@ -17,6 +18,7 @@ from app.repositories.analysis_results import get_analysis_result_by_job_id
 from app.repositories.analysis_steps import get_analysis_step_by_step_id, list_analysis_steps
 from app.repositories.claims import list_claims
 from app.repositories.documents import get_document
+from app.repositories.impact_items import list_impact_items
 from app.repositories.policy_matches import list_policy_matches
 from app.repositories.projects import get_project
 from app.research.plan_builder import build_research_plan
@@ -27,9 +29,12 @@ from app.schemas.common import (
     AnalysisEvidenceResponse,
     AnalysisJobRequest,
     AnalysisJobResponse,
+    AnalysisReportResponse,
     AnalysisResultResponse,
     AnalysisStepListResponse,
     AnalysisStepResponse,
+    ImpactItemResponse,
+    ImpactMatrixResponse,
     PolicyMatchListResponse,
     PolicyMatchResponse,
 )
@@ -159,6 +164,36 @@ def get_analysis_job_evidence(job_id: UUID, session: Session = Depends(get_sessi
     )
 
 
+@router.get("/jobs/{job_id}/impact-matrix", response_model=ImpactMatrixResponse)
+def get_analysis_job_impact_matrix(job_id: UUID, session: Session = Depends(get_session)) -> ImpactMatrixResponse:
+    job = repo_get_analysis_job(session, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Analysis job not found.")
+    result = get_analysis_result_by_job_id(session, job.id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Analysis result not found.")
+    items = list_impact_items(session, analysis_id=result.id, limit=500)
+    return ImpactMatrixResponse(items=[_to_impact_item_response(item) for item in items])
+
+
+@router.get("/jobs/{job_id}/report", response_model=AnalysisReportResponse)
+def get_analysis_job_report(job_id: UUID, session: Session = Depends(get_session)) -> AnalysisReportResponse:
+    job = repo_get_analysis_job(session, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Analysis job not found.")
+    result = get_analysis_result_by_job_id(session, job.id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Analysis result not found.")
+    report_json = result.report_json or {}
+    return AnalysisReportResponse(
+        job_id=str(job.id),
+        result_id=str(result.id),
+        report_markdown=result.report_markdown,
+        report_outline=report_json.get("report_outline", {}),
+        fact_boundaries=report_json.get("fact_boundaries", {}),
+    )
+
+
 def _to_job_response(job: AnalysisJobModel, result_id: str | None = None) -> AnalysisJobResponse:
     return AnalysisJobResponse(
         id=str(job.id),
@@ -238,4 +273,22 @@ def _to_policy_match_response(match: PolicyMatchModel) -> PolicyMatchResponse:
         reason=match.reason,
         evidence=match.evidence,
         created_at=match.created_at,
+    )
+
+
+def _to_impact_item_response(item: ImpactItemModel) -> ImpactItemResponse:
+    return ImpactItemResponse(
+        id=str(item.id),
+        project_id=str(item.project_id),
+        analysis_id=str(item.analysis_id) if item.analysis_id else None,
+        policy_id=str(item.policy_id) if item.policy_id else None,
+        impact_subject=item.impact_subject,
+        impact_direction=item.impact_direction,
+        impact_horizon=item.impact_horizon,
+        impact_mechanism=item.impact_mechanism,
+        market_variable=item.market_variable,
+        analysis_text=item.analysis_text,
+        confidence=float(item.confidence) if item.confidence is not None else None,
+        citations=item.citations,
+        created_at=item.created_at,
     )

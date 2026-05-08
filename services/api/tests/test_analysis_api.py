@@ -83,7 +83,9 @@ def test_analysis_api_runs_research_plan_and_returns_steps_plan_and_result(tmp_p
     assert "retrieve_policy_candidates" in step_ids
     assert "match_policy_sections" in step_ids
     assert "build_evidence_map" in step_ids
+    assert "build_impact_matrix" in step_ids
     assert "summarize_findings" in step_ids
+    assert "draft_markdown_report" in step_ids
 
     plan_response = client.get(f"/api/analysis/jobs/{job_payload['id']}/plan")
     assert plan_response.status_code == 200
@@ -93,6 +95,8 @@ def test_analysis_api_runs_research_plan_and_returns_steps_plan_and_result(tmp_p
     assert result_response.status_code == 200
     result_payload = result_response.json()
     assert result_payload["related_policies"]
+    assert result_payload["impact_matrix"]
+    assert result_payload["report_markdown"].startswith("# 政策与市场研究解析报告")
     assert result_payload["report_json"]["fact_boundaries"]["model_reasoning"] == []
 
 
