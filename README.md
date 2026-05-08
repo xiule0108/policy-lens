@@ -19,10 +19,10 @@ PolicyLens 是一个开源的政策与市场研究解析工作台。项目面向
 
 当前提交提供可运行工程骨架和数据库基础设施：
 
-- Next.js 前端页面使用 mock 数据
+- Next.js 前端工作台已接入真实 API，可完成项目、上传、解析、政策入库、分析、证据、影响矩阵、报告和导出联调
 - FastAPI API 提供 mock 业务结构，并已接入 projects、documents、document_chunks、policies、policy_versions、policy_sections、exports、LLM user providers 的数据库持久化
 - PostgreSQL schema、SQLAlchemy models、Alembic migration 和 repository 层已经建立
-- 本地文件上传、基础文档解析、chunk 入库、政策入库、政策原文 ZIP 导出、Research Plan 同步执行、基础证据链、影响矩阵和 Markdown 报告草稿已经跑通
+- 本地文件上传、基础文档解析、chunk 入库、政策入库、政策原文 ZIP 导出、Research Plan 同步执行、基础证据链、影响矩阵、Markdown 报告草稿和报告 ZIP 导出已经跑通
 - Qdrant 和 worker 仍以服务预留为主
 - LLM Gateway 已支持 OpenAI-compatible chat 调用、Provider 连接测试和不落库密钥读取
 - 政策原文导出已经支持本地 ZIP bundle、manifest 和 sha256 checksums
@@ -83,6 +83,7 @@ Start the web app locally:
 ```bash
 cd policy-lens/apps/web
 npm install
+export NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 npm run dev
 ```
 
@@ -91,6 +92,8 @@ Then open:
 - Web: http://localhost:3000
 - API health: http://localhost:8000/api/health
 - API docs: http://localhost:8000/docs
+
+`NEXT_PUBLIC_API_BASE_URL` is used by browser-side pages only. The Next.js production build does not require the API server to be running.
 
 ## Docker Compose
 
@@ -198,6 +201,18 @@ The analysis API exposes:
 
 Current matching, impact matrix generation, and Markdown report drafting are deterministic SQL/rule based. They are not Qdrant, embedding search, RAG, reranking, LLM judgment, legal advice, or investment advice. `report_json.fact_boundaries.model_reasoning` remains empty unless a future task explicitly adds model review.
 
+## Web Workbench
+
+The v0.1 web workbench is API-backed and uses client-side requests to avoid build-time backend coupling.
+
+- `/projects`: lists database projects
+- `/projects/new`: creates a project through `POST /api/projects`
+- `/projects/{projectId}`: uploads documents, parses documents, ingests policy documents, runs Research Plan jobs, displays steps, plan, result, claims, policy matches, evidence, impact matrix, Markdown report, and export actions
+- `/policy-library`: lists/searches database policies, inspects originals and sections, and creates policy original export bundles
+- `/settings/models`: lists and upserts LLM providers, tests provider connectivity, and asks only for API key environment variable names
+
+The workbench is intentionally plain and operational in v0.1. It does not include complex charts, report editing, permissions, team workflows, RAG, or external LLM analysis.
+
 ## Policy Original Export
 
 `POST /api/exports/policy-originals` creates a real ZIP bundle from local policy library records. It reads `policies`, the current `policy_versions`, and `policy_sections`, then writes the bundle below `STORAGE_DIR` using a relative database key:
@@ -217,6 +232,37 @@ Supported modes:
 Supported policy file formats are `markdown`, `txt`, `html`, and `json`. The bundle includes `manifest.json` and, by default, `checksums/sha256.txt`. Use `GET /api/exports/{export_id}` to inspect status and `GET /api/exports/{export_id}/download` to download the ZIP.
 
 The v0.1 exporter packages normalized policy text and sections from the database. It does not copy user-uploaded source files into the ZIP and does not include original web/PDF snapshots yet; `manifest.json` records `snapshot_status=not_available_in_v0.1` when snapshots are requested.
+
+## Report Export
+
+`POST /api/exports/report` creates a real ZIP bundle from an existing analysis result. Pass either `analysis_id` or `job_id`; `analysis_id` takes priority when both are present. Supported formats are `markdown`, `json`, and `html`.
+
+The ZIP is stored with a relative database key:
+
+```text
+exports/{export_id}/report_export_bundle.zip
+```
+
+Bundle structure:
+
+```text
+report_export_bundle.zip
+  manifest.json
+  reports/
+    report.md
+    report.html
+    report.json
+  evidence/
+    evidence.json
+  impact_matrix/
+    impact_matrix.json
+  policy_matches/
+    policy_matches.json
+  checksums/
+    sha256.txt
+```
+
+The report export packages the deterministic Markdown draft, structured analysis JSON, evidence map, impact matrix, policy matches, manifest, and checksums. It does not generate PPT, DOCX, PDF, formal investment reports, or LLM-reviewed conclusions.
 
 ## CI Status
 

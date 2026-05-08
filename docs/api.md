@@ -12,6 +12,7 @@ Returns service status and mock dependency states.
 
 - `GET /api/projects`
 - `POST /api/projects`
+- `GET /api/projects/{project_id}`
 
 Projects represent research workspaces. Projects are backed by the database. An empty database returns an empty list.
 
@@ -110,6 +111,7 @@ This task does not crawl policies, judge policy legal validity, or perform polic
 ## Analysis
 
 - `POST /api/analysis/jobs`
+- `GET /api/analysis/jobs`
 - `GET /api/analysis/jobs/{job_id}`
 - `GET /api/analysis/jobs/{job_id}/steps`
 - `GET /api/analysis/jobs/{job_id}/plan`
@@ -144,6 +146,8 @@ The default plan runs:
 - `draft_markdown_report`
 
 The executor records a `research_plan` step, then records each step as `running`, `done`, `skipped`, or `failed`. Jobs move through `queued`, `running`, `completed`, or `failed`. Failed jobs store a short error summary without a traceback.
+
+`GET /api/analysis/jobs?project_id={project_id}&limit=50&offset=0` lists jobs. If `project_id` is supplied, it must be a valid project UUID and must exist. If it is omitted, the API returns recent jobs. Each job response includes `result_id` when an analysis result exists.
 
 Analysis job route parameters are UUIDs. Malformed job IDs return `422`; well-formed but unknown job IDs return `404`.
 
@@ -181,9 +185,9 @@ It uses deterministic sentence and keyword rules plus SQL-backed policy section 
 ## Exports
 
 - `POST /api/exports/policy-originals`
+- `POST /api/exports/report`
 - `GET /api/exports/{export_id}`
 - `GET /api/exports/{export_id}/download`
-- `POST /api/exports/report`
 
 `POST /api/exports/policy-originals` creates a real local ZIP bundle from policy library records. It supports these modes:
 
@@ -216,7 +220,49 @@ Created exports move through `running`, `completed`, or `failed`. Successful rec
 
 `GET /api/exports/{export_id}` returns the export record, formats, storage key, manifest, timestamps, and status.
 
-`GET /api/exports/{export_id}/download` streams the completed ZIP as `policy_export_{export_id}.zip`. It returns `409` if the export is not completed and never exposes the server absolute path.
+`POST /api/exports/report` creates a real local ZIP bundle from an existing `analysis_results` row. Use either `analysis_id` or `job_id`; `analysis_id` takes priority when both are present.
+
+Request fields:
+
+- `project_id`: optional project UUID for export tracking
+- `job_id`: optional analysis job UUID
+- `analysis_id`: optional analysis result UUID
+- `formats`: any of `markdown`, `json`, `html`
+- `report_format`: legacy single-format field, converted to `formats` when `formats` is omitted
+- `include_evidence_bundle`: include `evidence/evidence.json`
+- `include_impact_matrix`: include `impact_matrix/impact_matrix.json`
+- `include_policy_matches`: include `policy_matches/policy_matches.json`
+
+Unsupported formats such as `docx`, `pdf`, or `ppt` return `422`. An empty or missing source returns `422`; missing jobs or analysis results return `404`; an analysis result without `report_markdown` returns `422`.
+
+Report export bundle structure:
+
+```text
+report_export_bundle.zip
+  manifest.json
+  reports/
+    report.md
+    report.html
+    report.json
+  evidence/
+    evidence.json
+  impact_matrix/
+    impact_matrix.json
+  policy_matches/
+    policy_matches.json
+  checksums/
+    sha256.txt
+```
+
+The database stores only the relative ZIP key, for example `exports/{export_id}/report_export_bundle.zip`.
+
+`GET /api/exports/{export_id}/download` streams completed ZIP exports. Download filenames are based on export type:
+
+- `policy_originals`: `policy_export_{export_id}.zip`
+- `report`: `report_export_{export_id}.zip`
+- other export types: `export_{export_id}.zip`
+
+The download endpoint returns `409` if the export is not completed and never exposes the server absolute path.
 
 ## LLM
 
@@ -261,12 +307,14 @@ The following API surfaces have light database integration:
 
 - `GET /api/projects`
 - `POST /api/projects`
+- `GET /api/projects/{project_id}`
 - `GET /api/llm/providers`
 - `POST /api/llm/providers`
 - `POST /api/exports/policy-originals`
 - `GET /api/exports/{export_id}`
 - `GET /api/exports/{export_id}/download`
 - `POST /api/analysis/jobs`
+- `GET /api/analysis/jobs`
 - `GET /api/analysis/jobs/{job_id}`
 - `GET /api/analysis/jobs/{job_id}/steps`
 - `GET /api/analysis/jobs/{job_id}/plan`

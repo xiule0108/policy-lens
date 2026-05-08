@@ -19,6 +19,14 @@ cp .env.example .env
 docker compose up --build
 ```
 
+For local Compose, keep the browser-facing API URL available to the web app:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+```
+
+In hosted deployments, set `NEXT_PUBLIC_API_BASE_URL` to the public API origin that the user's browser can reach. Do not point it at a container-only hostname unless the browser can resolve it.
+
 Apply database migrations safely after services start:
 
 ```bash
@@ -85,3 +93,5 @@ v0.1 is not production ready. Before production deployment, add:
 - background queue runtime
 - observability and audit logging
 - backup policy for PostgreSQL, Qdrant, and object storage
+
+Report exports and policy original exports write ZIP files below `STORAGE_DIR` and store only relative keys in PostgreSQL. Make `STORAGE_DIR` persistent in any non-ephemeral deployment so downloads continue to work after container restarts.

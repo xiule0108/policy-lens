@@ -94,6 +94,29 @@ The Markdown report draft is saved to `analysis_results.report_markdown`. Its ou
 
 The report and impact matrix are research aids only. They are not formal investment advice, legal advice, or a substitute for human policy review.
 
+## Report Export
+
+Task 11 adds a real report export bundle for completed analysis results. The exporter packages the deterministic Markdown draft, structured report JSON, evidence map, impact matrix, policy matches, manifest, and checksums:
+
+```text
+report_export_bundle.zip
+  manifest.json
+  reports/
+    report.md
+    report.html
+    report.json
+  evidence/
+    evidence.json
+  impact_matrix/
+    impact_matrix.json
+  policy_matches/
+    policy_matches.json
+  checksums/
+    sha256.txt
+```
+
+This export is still a deterministic research draft. It is not a PPT, DOCX, PDF, formal investment report, legal opinion, or LLM-reviewed conclusion.
+
 ## v0.1 Scope
 
-The current repository now supports upload, deterministic parsing, chunk storage, policy library ingestion, policy original export, LLM provider gateway configuration, synchronous Research Plan execution, a basic claim-policy evidence chain, deterministic impact matrix generation, and a Markdown report draft. Formal report export, LLM review, and richer impact modeling are future tasks.
+The current repository now supports upload, deterministic parsing, chunk storage, policy library ingestion, policy original export, LLM provider gateway configuration, synchronous Research Plan execution, a basic claim-policy evidence chain, deterministic impact matrix generation, a Markdown report draft, and Markdown/JSON/HTML report bundle export. LLM review, richer impact modeling, PPT/DOCX/PDF export, and formal report generation are future tasks.

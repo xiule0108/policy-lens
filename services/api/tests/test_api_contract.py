@@ -52,6 +52,12 @@ def test_projects_api_uses_database_records() -> None:
     assert list_response.status_code == 200
     assert [item["id"] for item in list_response.json()["items"]] == [created["id"]]
 
+    detail_response = client.get(f"/api/projects/{created['id']}")
+    assert detail_response.status_code == 200
+    assert detail_response.json()["id"] == created["id"]
+    assert client.get("/api/projects/not-a-uuid").status_code == 422
+    assert client.get("/api/projects/11111111-1111-4111-8111-111111111111").status_code == 404
+
 
 def test_policy_original_export_returns_manifest(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(settings, "storage_dir", str(tmp_path))
