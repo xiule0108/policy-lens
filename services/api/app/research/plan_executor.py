@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import copy
 import time
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from app.db.base import utc_now
+from app.db.models import PolicyMatch
 from app.repositories.analysis_jobs import get_analysis_job, update_analysis_job_status
-from app.repositories.analysis_results import create_analysis_result
+from app.repositories.analysis_results import create_analysis_result, update_analysis_result
 from app.repositories.analysis_steps import create_analysis_step, update_analysis_step
 from app.repositories.impact_items import create_impact_items
 from app.repositories.policy_matches import create_policy_matches
@@ -112,6 +114,16 @@ def _persist_result(session: Session, job_id, plan: ResearchPlan, step_outputs: 
     impact_output = step_outputs.get("build_impact_matrix", {})
     report_output = step_outputs.get("draft_markdown_report", {})
     impact_matrix = impact_output.get("impact_matrix", [])
+    report_json = {
+        "research_plan": plan.model_dump(mode="json"),
+        "step_outputs": step_outputs,
+        "claim_policy_map": summary_output.get("claim_policy_map", []),
+        "fact_boundaries": summary_output.get(
+            "fact_boundaries",
+            {"original_facts": [], "retrieved_facts": [], "model_reasoning": []},
+        ),
+        "report_outline": report_output.get("report_outline", {}),
+    }
     result = create_analysis_result(
         session,
         {
@@ -122,28 +134,34 @@ def _persist_result(session: Session, job_id, plan: ResearchPlan, step_outputs: 
             "related_policies": summary_output.get("related_policies", []),
             "impact_matrix": impact_matrix,
             "report_markdown": report_output.get("report_markdown"),
-            "report_json": {
-                "research_plan": plan.model_dump(mode="json"),
-                "step_outputs": step_outputs,
-                "claim_policy_map": summary_output.get("claim_policy_map", []),
-                "fact_boundaries": summary_output.get(
-                    "fact_boundaries",
-                    {"original_facts": [], "retrieved_facts": [], "model_reasoning": []},
-                ),
-                "report_outline": report_output.get("report_outline", {}),
-            },
+            "report_json": report_json,
         },
     )
-    _persist_policy_matches(session, result.id, step_outputs.get("match_policy_sections", {}).get("matches", []))
-    _persist_impact_items(session, result.id, impact_matrix)
+    created_matches = _persist_policy_matches(
+        session,
+        result.id,
+        step_outputs.get("match_policy_sections", {}).get("matches", []),
+    )
+    enriched_impact_matrix = _enrich_impact_matrix_with_policy_match_ids(impact_matrix, created_matches)
+    if enriched_impact_matrix != impact_matrix:
+        report_json = copy.deepcopy(report_json)
+        report_json.setdefault("step_outputs", {}).setdefault("build_impact_matrix", {})[
+            "impact_matrix"
+        ] = enriched_impact_matrix
+        result = update_analysis_result(
+            session,
+            result.id,
+            {"impact_matrix": enriched_impact_matrix, "report_json": report_json},
+        ) or result
+    _persist_impact_items(session, result.id, enriched_impact_matrix)
     return result
 
 
-def _persist_policy_matches(session: Session, analysis_id, matches: list[dict]) -> None:
+def _persist_policy_matches(session: Session, analysis_id, matches: list[dict]) -> list[PolicyMatch]:
     if not matches:
-        return
+        return []
     records = [{**match, "analysis_id": analysis_id} for match in matches]
-    create_policy_matches(session, records)
+    return create_policy_matches(session, records)
 
 
 def _persist_impact_items(session: Session, analysis_id, items: list[dict]) -> None:
@@ -151,6 +169,47 @@ def _persist_impact_items(session: Session, analysis_id, items: list[dict]) -> N
         return
     records = [{**item, "analysis_id": analysis_id} for item in items]
     create_impact_items(session, records)
+
+
+def _enrich_impact_matrix_with_policy_match_ids(
+    impact_matrix: list[dict], policy_matches: list[PolicyMatch]
+) -> list[dict]:
+    if not impact_matrix or not policy_matches:
+        return impact_matrix
+    match_lookup = {
+        _match_key(str(match.claim_id), str(match.policy_id), _str_or_none(match.policy_section_id)): str(match.id)
+        for match in policy_matches
+    }
+    enriched = copy.deepcopy(impact_matrix)
+    for item in enriched:
+        citations = item.get("citations") or []
+        claim_citation = next((citation for citation in citations if citation.get("source_type") == "claim"), None)
+        policy_citation = next(
+            (citation for citation in citations if citation.get("source_type") == "policy_section"),
+            None,
+        )
+        if not claim_citation or not policy_citation:
+            continue
+        policy_match_id = match_lookup.get(
+            _match_key(
+                _str_or_none(claim_citation.get("claim_id")),
+                _str_or_none(policy_citation.get("policy_id")),
+                _str_or_none(policy_citation.get("policy_section_id")),
+            )
+        )
+        if policy_match_id:
+            policy_citation["policy_match_id"] = policy_match_id
+    return enriched
+
+
+def _match_key(
+    claim_id: str | None, policy_id: str | None, policy_section_id: str | None
+) -> tuple[str | None, str | None, str | None]:
+    return claim_id, policy_id, policy_section_id
+
+
+def _str_or_none(value) -> str | None:
+    return str(value) if value is not None else None
 
 
 def _short_error(exc: Exception) -> str:

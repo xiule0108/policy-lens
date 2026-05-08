@@ -160,6 +160,7 @@ Analysis job route parameters are UUIDs. Malformed job IDs return `422`; well-fo
 `GET /api/analysis/jobs/{job_id}/evidence` returns `report_json.claim_policy_map` and `report_json.fact_boundaries`.
 
 `GET /api/analysis/jobs/{job_id}/impact-matrix` returns persisted `impact_items` tied to the job's `analysis_results` row.
+Each impact item citation keeps the evidence chain identifiers: `claim_id`, `policy_match_id`, `policy_section_id`, `source_chunk_ids`, and `policy_quote` when available.
 
 `GET /api/analysis/jobs/{job_id}/report` returns `analysis_results.report_markdown`, `report_json.report_outline`, and factual boundaries.
 

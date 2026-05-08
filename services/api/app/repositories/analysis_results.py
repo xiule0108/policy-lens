@@ -38,3 +38,23 @@ def get_analysis_result_by_job_id(session: Session, job_id: uuid.UUID | str) -> 
         .limit(1)
     )
     return session.scalar(statement)
+
+
+def update_analysis_result(session: Session, result_id: uuid.UUID | str, data: dict) -> AnalysisResult | None:
+    result = get_analysis_result(session, result_id)
+    if result is None:
+        return None
+    allowed_fields = {
+        "summary",
+        "claims",
+        "related_policies",
+        "impact_matrix",
+        "report_markdown",
+        "report_json",
+    }
+    for key, value in data.items():
+        if key in allowed_fields:
+            setattr(result, key, value)
+    session.commit()
+    session.refresh(result)
+    return result

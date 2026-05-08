@@ -75,6 +75,13 @@ def test_analysis_report_api_full_flow(tmp_path, monkeypatch) -> None:
     impact_payload = impact_response.json()["items"][0]
     assert impact_payload["impact_mechanism"]
     assert impact_payload["citations"][0]["source_type"] == "claim"
+    policy_match_id = impact_payload["citations"][1]["policy_match_id"]
+    assert policy_match_id
+
+    matches_response = client.get(f"/api/analysis/jobs/{job_id}/policy-matches")
+    assert matches_response.status_code == 200
+    match_ids = {item["id"] for item in matches_response.json()["items"]}
+    assert policy_match_id in match_ids
 
     report_response = client.get(f"/api/analysis/jobs/{job_id}/report")
     assert report_response.status_code == 200

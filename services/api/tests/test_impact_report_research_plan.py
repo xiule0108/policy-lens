@@ -4,6 +4,7 @@ from app.repositories.document_chunks import create_document_chunks
 from app.repositories.documents import create_document
 from app.repositories.impact_items import list_impact_items
 from app.repositories.policies import create_policy
+from app.repositories.policy_matches import list_policy_matches
 from app.repositories.policy_sections import create_policy_sections
 from app.repositories.policy_versions import create_policy_version
 from app.repositories.projects import create_project
@@ -102,7 +103,14 @@ def test_research_plan_persists_impact_matrix_and_markdown_report(db_session) ->
     assert impact_items
     assert impact_items[0].analysis_id == result.id
     assert impact_items[0].citations
+    policy_matches = list_policy_matches(db_session, analysis_id=result.id)
+    policy_match_ids = {str(match.id) for match in policy_matches}
+    impact_policy_match_id = impact_items[0].citations[1]["policy_match_id"]
+    assert impact_policy_match_id in policy_match_ids
     assert result_from_db.impact_matrix
+    assert result_from_db.impact_matrix[0]["citations"][1]["policy_match_id"] in policy_match_ids
+    persisted_step_impact = result_from_db.report_json["step_outputs"]["build_impact_matrix"]["impact_matrix"][0]
+    assert persisted_step_impact["citations"][1]["policy_match_id"] in policy_match_ids
     assert result_from_db.report_markdown.startswith("# 政策与市场研究解析报告")
     assert result_from_db.report_json["report_outline"]["generation_method"] == "deterministic_rule_based"
     assert result_from_db.report_json["report_outline"]["llm_used"] is False

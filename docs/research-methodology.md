@@ -88,7 +88,7 @@ This matching is not legal interpretation, RAG, embedding retrieval, or LLM reas
 
 ## Impact Matrix And Report Draft
 
-Task 10 adds deterministic impact matrix and Markdown report generation. Impact items are derived from claims, policy matches, and evidence maps, then persisted to `impact_items` with citations that include claim ids, source chunk ids, policy section ids, policy quotes, and matched terms.
+Task 10 adds deterministic impact matrix and Markdown report generation. Impact items are derived from claims, policy matches, and evidence maps, then persisted to `impact_items` with citations that include claim ids, policy match ids, source chunk ids, policy section ids, policy quotes, and matched terms.
 
 The Markdown report draft is saved to `analysis_results.report_markdown`. Its outline is saved to `analysis_results.report_json.report_outline` with `generation_method=deterministic_rule_based` and `llm_used=false`.
 

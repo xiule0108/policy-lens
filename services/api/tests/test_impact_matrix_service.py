@@ -42,6 +42,7 @@ def test_build_impact_matrix_derives_fields_and_citations() -> None:
     assert item["citations"][0]["source_type"] == "claim"
     assert item["citations"][1]["source_type"] == "policy_section"
     assert item["citations"][1]["policy_quote"]
+    assert "policy_match_id" not in item["citations"][1]
 
 
 def test_build_impact_matrix_handles_negative_uncertain_defaults() -> None:
