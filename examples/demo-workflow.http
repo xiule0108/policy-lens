@@ -1,0 +1,126 @@
+@api=http://localhost:8000
+@project_id=
+@policy_document_id=
+@article_document_id=
+@policy_id=
+@job_id=
+@report_export_id=
+@policy_export_id=
+
+### Health
+GET {{api}}/api/health
+
+### Create project
+POST {{api}}/api/projects
+Content-Type: application/json
+
+{
+  "name": "PolicyLens v0.1 demo",
+  "description": "Local demo workflow",
+  "industry": "energy",
+  "jurisdictions": ["China"],
+  "default_model_profile": "china_balanced"
+}
+
+### Upload policy document
+POST {{api}}/api/documents/upload
+Content-Type: multipart/form-data; boundary=PolicyLensBoundary
+
+--PolicyLensBoundary
+Content-Disposition: form-data; name="project_id"
+
+{{project_id}}
+--PolicyLensBoundary
+Content-Disposition: form-data; name="document_role"
+
+policy
+--PolicyLensBoundary
+Content-Disposition: form-data; name="title"
+
+示例储能政策
+--PolicyLensBoundary
+Content-Disposition: form-data; name="file"; filename="demo-policy-notice.txt"
+Content-Type: text/plain
+
+< ./demo-policy-notice.txt
+--PolicyLensBoundary--
+
+### Parse policy document
+POST {{api}}/api/documents/{{policy_document_id}}/parse
+
+### Ingest policy
+POST {{api}}/api/policies/from-document
+Content-Type: application/json
+
+{
+  "document_id": "{{policy_document_id}}",
+  "title": "示例：关于促进新型储能参与电力市场的通知",
+  "issuer": "示例能源主管部门",
+  "jurisdiction": "China",
+  "policy_type": "notice",
+  "status": "active",
+  "version_label": "demo-v1"
+}
+
+### Upload research article
+POST {{api}}/api/documents/upload
+Content-Type: multipart/form-data; boundary=PolicyLensBoundary
+
+--PolicyLensBoundary
+Content-Disposition: form-data; name="project_id"
+
+{{project_id}}
+--PolicyLensBoundary
+Content-Disposition: form-data; name="document_role"
+
+research_article
+--PolicyLensBoundary
+Content-Disposition: form-data; name="title"
+
+新能源储能市场研究
+--PolicyLensBoundary
+Content-Disposition: form-data; name="file"; filename="demo-research-article.txt"
+Content-Type: text/plain
+
+< ./demo-research-article.txt
+--PolicyLensBoundary--
+
+### Parse research article
+POST {{api}}/api/documents/{{article_document_id}}/parse
+
+### Run analysis
+POST {{api}}/api/analysis/jobs
+Content-Type: application/json
+
+{
+  "project_id": "{{project_id}}",
+  "document_ids": ["{{article_document_id}}"],
+  "analysis_types": ["policy_deep_dive"],
+  "model_profile": "china_balanced"
+}
+
+### Get report
+GET {{api}}/api/analysis/jobs/{{job_id}}/report
+
+### Create report export
+POST {{api}}/api/exports/report
+Content-Type: application/json
+
+{
+  "job_id": "{{job_id}}",
+  "formats": ["markdown", "json", "html"],
+  "include_evidence_bundle": true,
+  "include_impact_matrix": true,
+  "include_policy_matches": true
+}
+
+### Create policy original export
+POST {{api}}/api/exports/policy-originals
+Content-Type: application/json
+
+{
+  "project_id": "{{project_id}}",
+  "policy_ids": ["{{policy_id}}"],
+  "mode": "single_policy_full_text",
+  "formats": ["markdown", "json"]
+}

@@ -10,6 +10,7 @@ Thanks for helping build PolicyLens / 政研透镜.
 - Do not submit real API keys, `.env` files, private policy datasets, or user documents.
 - Do not hard-code model names. Provider configuration should accept user-supplied model IDs.
 - New API routes must include request and response schemas.
+- Demo policy data must be clearly marked as fictional unless it is sourced and verified as a real public policy document.
 
 ## Local Setup
 
@@ -45,6 +46,14 @@ uvicorn app.main:app --reload
 - No secrets are committed.
 - Export-related changes preserve source, timestamp, and checksum fields.
 - LLM output separates original facts, retrieved facts, and model reasoning.
+- `bash scripts/check.sh` passes locally when the change affects backend, frontend, docs release artifacts, or API contracts.
+
+## Extension Contributions
+
+- Provider contributions should use environment-variable based credentials only.
+- Parser contributions should include deterministic tests and clear unsupported-format errors.
+- Exporter contributions should include `manifest.json`, relative paths, and checksum tests.
+- Policy source contributions should preserve source URL, retrieval timestamp, content timestamp when available, and sha256 checksum.
 
 ## Reporting Issues
 

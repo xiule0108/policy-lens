@@ -1,4 +1,4 @@
-# Installation Draft
+# Installation
 
 This document covers v0.1 local setup for PolicyLens / 政研透镜.
 
@@ -63,6 +63,17 @@ npm run dev
 Open http://localhost:3000.
 
 `NEXT_PUBLIC_API_BASE_URL` is read by client-side pages. If it is omitted, the web app defaults to `http://localhost:8000`. The Next.js build does not require the backend to be running.
+
+## Demo Data
+
+Fictional demo files live in `examples/`:
+
+- `demo-research-article.txt`
+- `demo-policy-notice.txt`
+- `demo-policy-metadata.json`
+- `demo-workflow.http`
+
+The policy notice is explicitly marked as a fictional example and is not an official policy document.
 
 ## Worker Setup
 
@@ -232,6 +243,22 @@ curl -OJ http://localhost:8000/api/exports/<export_id>/download
 ```
 
 Report export supports only `markdown`, `json`, and `html`. PPT, DOCX, and PDF report exports are not supported in v0.1.
+
+## End-to-End Demo Script
+
+With the API running:
+
+```bash
+python3 scripts/e2e_demo.py
+```
+
+Override the API base URL when needed:
+
+```bash
+POLICYLENS_API_BASE_URL=http://localhost:8000 python3 scripts/e2e_demo.py
+```
+
+The script uses only local fictional demo data and does not call external LLMs.
 
 ## Migration Checks
 

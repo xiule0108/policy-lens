@@ -1,33 +1,73 @@
 # PolicyLens / 政研透镜
 
-PolicyLens 是一个开源的政策与市场研究解析工作台。项目面向政策研究、市场研究、行业研究和投研分析场景，目标是让用户上传研究文章后，能够解析文章、检索关联政策、查看并导出政策原文、生成政策影响矩阵、生成研究报告，并接入中国及全球主流大模型。
+**PolicyLens is an open-source policy and market research analysis workbench.** It helps researchers upload articles, ingest local policy originals, run a deterministic research workflow, inspect evidence chains, build a basic impact matrix, draft Markdown reports, and export auditable ZIP bundles.
 
-当前仓库处于 v0.1 engineering scaffold 阶段，重点是把 monorepo、开发规范、Docker 服务、API 骨架、前端骨架、数据库底座和模型 Provider 预设跑通。v0.1 release target 是跑通上传文章、政策入库、政策原文导出、基础检索、基础分析和报告导出的最小闭环。
+Current version:
+
+```text
+v0.1.0-alpha
+```
+
+PolicyLens is currently a v0.1 engineering scaffold and alpha release candidate. The v0.1 target is a runnable minimum research loop, not a production policy intelligence platform.
+
+## Use Cases
+
+- Policy research and policy impact review
+- Industry and market research notes
+- Energy, power market, storage, green power, and similar domain demos
+- Citation-aware evidence workflows for internal research
+- OpenAI-compatible LLM Provider configuration experiments
 
 ## Core Features
 
-- 研究项目管理和文章上传入口
-- 政策关联检索和政策库浏览骨架
-- 政策原文 ZIP 导出，保留来源、时间戳和 sha256 checksum
-- Research Plan 同步执行引擎，记录 job、step 和 result
-- 基础文章 claim 抽取、政策条款匹配和可复核 evidence map
-- 基础政策影响矩阵和 Markdown 研究报告草稿
-- 市场传导链、事实核查和图谱工作台页面
-- 中国主流大模型和 OpenAI-compatible Provider 配置、连接测试和基础 chat 调用
+- Project creation and API-backed Web workbench
+- Real document upload to local storage
+- Basic parsing for text, Markdown, HTML, DOCX, and searchable PDF files
+- `document_chunks` persistence
+- Parsed policy document ingestion into `policies`, `policy_versions`, and `policy_sections`
+- Policy original viewing and ZIP export
+- Synchronous Research Plan execution engine
+- Deterministic claim extraction and policy section matching
+- `claims`, `policy_matches`, evidence map, and factual boundaries
+- Deterministic impact matrix and Markdown report draft
+- Report ZIP export with manifest and checksums
+- OpenAI-compatible LLM Provider gateway with China provider presets, custom provider, and local provider support
 
-## v0.1 Scope And Roadmap
+## v0.1.0-alpha Capability List
 
-当前提交提供可运行工程骨架和数据库基础设施：
+The alpha can run this end-to-end loop:
 
-- Next.js 前端工作台已接入真实 API，可完成项目、上传、解析、政策入库、分析、证据、影响矩阵、报告和导出联调
-- FastAPI API 提供 mock 业务结构，并已接入 projects、documents、document_chunks、policies、policy_versions、policy_sections、exports、LLM user providers 的数据库持久化
-- PostgreSQL schema、SQLAlchemy models、Alembic migration 和 repository 层已经建立
-- 本地文件上传、基础文档解析、chunk 入库、政策入库、政策原文 ZIP 导出、Research Plan 同步执行、基础证据链、影响矩阵、Markdown 报告草稿和报告 ZIP 导出已经跑通
-- Qdrant 和 worker 仍以服务预留为主
-- LLM Gateway 已支持 OpenAI-compatible chat 调用、Provider 连接测试和不落库密钥读取
-- 政策原文导出已经支持本地 ZIP bundle、manifest 和 sha256 checksums
+```text
+create project
+upload policy file
+parse policy file
+ingest policy
+upload research article
+parse research article
+run analysis
+inspect claims, matches, evidence, impact matrix, and report
+export report bundle
+export policy original bundle
+```
 
-当前提交暂未实现 OCR、向量检索、rerank、streaming、正式商业报告排版、PPT/DOCX/PDF 报告导出和生产级任务队列；这些属于 v0.1 release roadmap。权限系统和政策来源自动抓取可后续迭代。
+Current analysis and reporting are deterministic rule-based drafts. They are research aids only and require human review.
+
+## Architecture Overview
+
+```text
+Web workbench
+  -> FastAPI API
+      -> PostgreSQL metadata
+      -> local filesystem storage
+      -> deterministic parser / research steps
+      -> ZIP exporters
+      -> OpenAI-compatible LLM Gateway
+
+Reserved for later:
+  -> worker runtime
+  -> Qdrant vector retrieval
+  -> MinIO/object storage
+```
 
 ## Tech Stack
 
@@ -35,18 +75,58 @@ PolicyLens 是一个开源的政策与市场研究解析工作台。项目面向
 - Frontend: Next.js, React, TypeScript, Tailwind CSS
 - Backend: FastAPI, Python
 - Database: PostgreSQL
-- Vector DB: Qdrant
-- Object Storage: local filesystem, MinIO reserved
+- Object storage: local filesystem in v0.1, MinIO reserved
+- Vector database: Qdrant reserved
 - Worker: Python worker skeleton
-- LLM Gateway: OpenAI-compatible provider adapter, LiteLLM reserved
+- LLM Gateway: OpenAI-compatible HTTP adapter
 - Deployment: Docker Compose
+
+## Quick Start With Docker Compose
+
+```bash
+git clone https://github.com/xiule0108/policy-lens.git
+cd policy-lens
+cp .env.example .env
+docker compose up --build
+docker compose exec api alembic upgrade head
+```
+
+Open:
+
+- Web: http://localhost:3000
+- API health: http://localhost:8000/api/health
+- API docs: http://localhost:8000/docs
+
+Useful Compose commands:
+
+```bash
+docker compose ps
+docker compose logs api
+docker compose logs web
+docker compose down
+```
+
+## Run The Demo Workflow
+
+With the API running:
+
+```bash
+python3 scripts/e2e_demo.py
+```
+
+The script uses fictional files in `examples/` and runs project creation, uploads, parsing, policy ingestion, analysis, report export, and policy original export. It does not call external LLMs and does not download ZIPs into the repository.
+
+You can also follow:
+
+- `docs/v0.1-demo-workflow.md`
+- `examples/demo-workflow.http`
 
 ## Local Development
 
-Start the API locally:
+Backend:
 
 ```bash
-cd policy-lens/services/api
+cd services/api
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
@@ -54,190 +134,115 @@ alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Set `DATABASE_URL` when using a database other than the default local PostgreSQL URL:
+Frontend:
 
 ```bash
-export DATABASE_URL=postgresql://policylens:policylens@localhost:5432/policylens
-```
-
-Configure local upload storage when needed:
-
-```bash
-export STORAGE_DIR=./storage
-export MAX_UPLOAD_SIZE_MB=50
-export ALLOWED_UPLOAD_EXTENSIONS=.pdf,.docx,.txt,.md,.markdown,.html,.htm
-export CHUNK_MAX_CHARS=2000
-```
-
-Configure model provider secrets through environment variables only:
-
-```bash
-export DEEPSEEK_API_KEY=...
-export CUSTOM_LLM_API_KEY=...
-```
-
-Provider records store the environment variable name, base URL, and user-chosen model name. They never store or return the API key value.
-
-Start the web app locally:
-
-```bash
-cd policy-lens/apps/web
+cd apps/web
 npm install
 export NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 npm run dev
 ```
 
-Then open:
+`NEXT_PUBLIC_API_BASE_URL` is read by browser-side pages. If it is omitted, the web app defaults to `http://localhost:8000`. The Next.js production build does not require the backend to be running.
 
-- Web: http://localhost:3000
-- API health: http://localhost:8000/api/health
-- API docs: http://localhost:8000/docs
+## Database Migration
 
-`NEXT_PUBLIC_API_BASE_URL` is used by browser-side pages only. The Next.js production build does not require the API server to be running.
-
-## Docker Compose
-
-Copy the environment template if you want local overrides:
+Local API directory:
 
 ```bash
-cd policy-lens
-cp .env.example .env
-docker compose up --build
+cd services/api
+alembic upgrade head
+alembic downgrade -1
+alembic upgrade head
 ```
 
-Apply database migrations after the services are running:
+Docker Compose:
 
 ```bash
 docker compose exec api alembic upgrade head
 ```
 
-Services:
+Do not run destructive resets as part of normal startup.
 
-- web: http://localhost:3000
-- api: http://localhost:8000
-- postgres: localhost:5432
-- qdrant: http://localhost:6333
+## Development Checks
 
-## Development Validation
-
-Run the local validation script before opening a pull request:
+Run the full local check:
 
 ```bash
-cd policy-lens
 bash scripts/check.sh
 ```
 
-The script runs backend tests, frontend type checks, and frontend production build. It does not require Docker.
-If no Python virtual environment is active, the script creates `services/api/.venv` locally.
-The script also validates Alembic upgrade, downgrade, and upgrade again against a local SQLite check database. GitHub Actions additionally validates the same migration cycle against PostgreSQL.
+Or use Make:
 
-## Document Uploads
-
-`POST /api/documents/upload` accepts `multipart/form-data` with `project_id`, `document_role`, optional `title`, optional `source_url`, and a required `file` part. Supported roles are `research_article`, `policy`, and `appendix`.
-
-Uploaded files are stored under the configured `STORAGE_DIR` using this relative key pattern:
-
-```text
-documents/{project_id}/{document_id}/{safe_filename}
+```bash
+make check
+make backend-test
+make frontend-build
+make compose-config
 ```
 
-The API stores only the relative `storage_key` in the database, along with file size, file type, content type metadata, source URL, sha256, and `parse_status=pending`.
-
-Uploads support Unicode filenames, including Chinese policy filenames. The server stores a safe filename for local storage and keeps `metadata.original_filename` plus `metadata.safe_filename` on the document record.
-
-## Document Parsing
-
-`POST /api/documents/{document_id}/parse` synchronously runs the v0.1 basic parser for uploaded `.txt`, `.md`, `.markdown`, `.html`, `.htm`, `.docx`, and searchable `.pdf` files. It does not run OCR, so scanned PDFs without extractable text return a parse failure.
-
-Parsing moves documents through these statuses:
-
-```text
-pending -> parsing -> parsed
-pending -> parsing -> failed
-```
-
-Successful parses write deterministic chunks into `document_chunks` with sequential `chunk_index`, page and section metadata when available, rough `token_count`, and `metadata.parse_summary` on the document. Re-parsing deletes old chunks before writing the new set. `GET /api/documents/{document_id}/chunks` returns stored chunks with `limit` and `offset`. Chunk size defaults to `CHUNK_MAX_CHARS=2000`.
-
-## Policy Library
-
-`POST /api/policies/from-document` ingests an already parsed `document_role=policy` document into the local policy library. The source document must have `parse_status=parsed`, a `storage_key`, and at least one `document_chunks` row.
-
-Ingestion creates:
-
-- `policies`: policy metadata such as title, issuer, jurisdiction, type, dates, status, source URL, and source document sha256
-- `policy_versions`: current policy text assembled from document chunks, with normalized text sha256 and source document metadata
-- `policy_sections`: one section per source chunk, preserving source chunk id, chunk index, page range, section title, content type, and token estimate
-
-The policy library API is database-backed:
-
-- `GET /api/policies`
-- `POST /api/policies/search`
-- `GET /api/policies/{policy_id}`
-- `GET /api/policies/{policy_id}/versions`
-- `GET /api/policies/{policy_id}/sections`
-- `GET /api/policies/{policy_id}/original`
-
-Repeated ingestion of the same document returns the existing policy/version by default. Set `force_new_version=true` to create a new current version for the same policy and mark older versions as not current.
-
-This local policy library does not crawl policy sources, judge legal validity, run policy relevance analysis, or call LLMs.
-
-## Research Plan And Evidence Chain
-
-`POST /api/analysis/jobs` runs the synchronous v0.1 Research Plan engine. The deterministic default path can parse a pending article, collect chunks, extract simple article signals, extract claims, retrieve SQL-backed policy candidates, match claims to policy sections, build an evidence map, generate a basic impact matrix, draft a Markdown report, and persist `analysis_results`.
-
-Task 09 adds the first auditable claim-policy evidence chain:
-
-```text
-document_chunks -> claims -> policy_sections -> policy_matches -> evidence map
-```
-
-The analysis API exposes:
-
-- `GET /api/analysis/jobs/{job_id}/claims`
-- `GET /api/analysis/jobs/{job_id}/policy-matches`
-- `GET /api/analysis/jobs/{job_id}/evidence`
-- `GET /api/analysis/jobs/{job_id}/impact-matrix`
-- `GET /api/analysis/jobs/{job_id}/report`
-
-Current matching, impact matrix generation, and Markdown report drafting are deterministic SQL/rule based. They are not Qdrant, embedding search, RAG, reranking, LLM judgment, legal advice, or investment advice. `report_json.fact_boundaries.model_reasoning` remains empty unless a future task explicitly adds model review.
+The check script runs backend tests, SQLite migration smoke checks, frontend typecheck, and frontend production build. GitHub Actions also validates PostgreSQL migrations.
 
 ## Web Workbench
 
-The v0.1 web workbench is API-backed and uses client-side requests to avoid build-time backend coupling.
+- `/projects`: database-backed project list
+- `/projects/new`: project creation
+- `/projects/{projectId}`: upload, parse, policy ingestion, analysis execution, steps, plan, result, claims, matches, evidence, impact matrix, Markdown report, report export, and policy original export
+- `/policy-library`: database policy list/search, original text, sections, and policy export
+- `/settings/models`: Provider list, upsert, and connection test
 
-- `/projects`: lists database projects
-- `/projects/new`: creates a project through `POST /api/projects`
-- `/projects/{projectId}`: uploads documents, parses documents, ingests policy documents, runs Research Plan jobs, displays steps, plan, result, claims, policy matches, evidence, impact matrix, Markdown report, and export actions
-- `/policy-library`: lists/searches database policies, inspects originals and sections, and creates policy original export bundles
-- `/settings/models`: lists and upserts LLM providers, tests provider connectivity, and asks only for API key environment variable names
+The workbench is intentionally operational and compact in v0.1. It does not include permissions, team collaboration, complex charts, or a report editor.
 
-The workbench is intentionally plain and operational in v0.1. It does not include complex charts, report editing, permissions, team workflows, RAG, or external LLM analysis.
+## Model Provider Configuration
+
+Provider records store only public configuration and API key environment variable names. They never store API key values.
+
+Example:
+
+```bash
+export DEEPSEEK_API_KEY=...
+```
+
+The API and settings page can configure:
+
+- DashScope
+- Qianfan
+- Hunyuan
+- VolcArk
+- Zhipu
+- DeepSeek
+- Kimi
+- MiniMax
+- Spark
+- OpenAI-compatible custom providers
+- Local OpenAI-compatible providers such as Ollama or vLLM
+
+Provider tests make real model calls only when explicitly triggered and configured. CI tests mock this path.
 
 ## Policy Original Export
 
-`POST /api/exports/policy-originals` creates a real ZIP bundle from local policy library records. It reads `policies`, the current `policy_versions`, and `policy_sections`, then writes the bundle below `STORAGE_DIR` using a relative database key:
+`POST /api/exports/policy-originals` writes:
 
 ```text
 exports/{export_id}/policy_export_bundle.zip
 ```
 
-Supported modes:
+The ZIP can include:
 
-- `single_policy_full_text`
-- `related_policy_bundle`
-- `cited_sections_only`
-- `evidence_bundle`
-- `machine_readable_json`
+```text
+manifest.json
+policies/
+cited_sections/
+evidence/
+machine_readable/
+checksums/sha256.txt
+```
 
-Supported policy file formats are `markdown`, `txt`, `html`, and `json`. The bundle includes `manifest.json` and, by default, `checksums/sha256.txt`. Use `GET /api/exports/{export_id}` to inspect status and `GET /api/exports/{export_id}/download` to download the ZIP.
-
-The v0.1 exporter packages normalized policy text and sections from the database. It does not copy user-uploaded source files into the ZIP and does not include original web/PDF snapshots yet; `manifest.json` records `snapshot_status=not_available_in_v0.1` when snapshots are requested.
+The exporter packages normalized policy text and sections from the database. It does not copy uploaded source files and does not include raw web/PDF snapshots in v0.1.
 
 ## Report Export
 
-`POST /api/exports/report` creates a real ZIP bundle from an existing analysis result. Pass either `analysis_id` or `job_id`; `analysis_id` takes priority when both are present. Supported formats are `markdown`, `json`, and `html`.
-
-The ZIP is stored with a relative database key:
+`POST /api/exports/report` writes:
 
 ```text
 exports/{export_id}/report_export_bundle.zip
@@ -246,41 +251,17 @@ exports/{export_id}/report_export_bundle.zip
 Bundle structure:
 
 ```text
-report_export_bundle.zip
-  manifest.json
-  reports/
-    report.md
-    report.html
-    report.json
-  evidence/
-    evidence.json
-  impact_matrix/
-    impact_matrix.json
-  policy_matches/
-    policy_matches.json
-  checksums/
-    sha256.txt
+manifest.json
+reports/report.md
+reports/report.html
+reports/report.json
+evidence/evidence.json
+impact_matrix/impact_matrix.json
+policy_matches/policy_matches.json
+checksums/sha256.txt
 ```
 
-The report export packages the deterministic Markdown draft, structured analysis JSON, evidence map, impact matrix, policy matches, manifest, and checksums. It does not generate PPT, DOCX, PDF, formal investment reports, or LLM-reviewed conclusions.
-
-## CI Status
-
-GitHub Actions CI is defined in `.github/workflows/ci.yml`. After the repository is pushed to GitHub, check the Actions tab for the `CI` workflow status. The workflow validates:
-
-- backend tests
-- Alembic migration upgrade, downgrade, and upgrade against SQLite
-- Alembic migration upgrade, downgrade, and upgrade against PostgreSQL
-- frontend typecheck and build
-- Docker Compose configuration syntax
-
-## How To Report Bugs
-
-Use the bug report issue template and include environment, reproduction steps, expected behavior, actual behavior, logs, and screenshots when relevant.
-
-## How To Request Features
-
-Use the feature request issue template and include the feature goal, usage scenario, suggested approach, data or policy sources, and acceptance criteria.
+Supported report formats are `markdown`, `json`, and `html`. PPT, DOCX, and PDF report exports are not supported in v0.1.
 
 ## Directory Structure
 
@@ -291,61 +272,68 @@ policy-lens/
   services/worker/          Python worker skeleton
   packages/core/            shared research and citation primitives
   packages/parsers/         parser package placeholders
-  packages/retrievers/      search, rerank, and vector store placeholders
-  packages/connectors/      LLM, policy source, and storage connectors
-  packages/exporters/       report, policy original, and evidence exporters
-  packages/prompts/         zh/en prompt assets
-  packages/evals/           fixtures and golden cases
-  infra/                    docker, migrations, nginx placeholders
+  packages/retrievers/      search and vector retrieval placeholders
+  packages/connectors/      LLM, policy source, and storage placeholders
+  packages/exporters/       exporter placeholders
   docs/                     project documentation
+  examples/                 fictional demo data
+  scripts/                  validation and demo scripts
 ```
 
-## Model Provider Plan
+## Developer Guide
 
-PolicyLens will support user-configured model names across these Provider families:
+Read:
 
-- 阿里云百炼 / 通义千问 / DashScope
-- 百度千帆 / 文心 / Qianfan
-- 腾讯混元 / Hunyuan
-- 火山方舟 / 豆包 / VolcArk
-- 智谱 AI / GLM / Zhipu
-- DeepSeek
-- Moonshot / Kimi
-- MiniMax
-- 科大讯飞 / 星火 / Spark
-- OpenAI-compatible Custom Provider
-- Local Provider / Ollama / vLLM
+- `CONTRIBUTING.md`
+- `AGENTS.md`
+- `docs/plugin-development.md`
+- `docs/model-providers.md`
+- `docs/api.md`
 
-The project does not hard-code concrete model names. Users configure model IDs, OpenAI-compatible base URLs, and credential environment variable names through the API or future UI settings. `POST /api/llm/providers/{provider_id}/test` and `POST /api/llm/chat` make real OpenAI-compatible calls when a provider has `base_url`, `model_name`, and either a configured API key env var or `local_provider=true`.
+Contribution areas:
 
-## Policy Original Export Guarantees
+- Provider presets and OpenAI-compatible gateway adapters
+- Parsers for additional deterministic formats
+- Exporters for additional machine-readable evidence formats
+- Policy source connectors with clear source, timestamp, and checksum preservation
+- Frontend review surfaces for evidence, impact matrix, and reports
 
-The policy original exporter packages traceable policy evidence:
+## Roadmap
 
-```text
-policy_export_bundle.zip
-  manifest.json
-  policies/
-  cited_sections/
-  evidence/
-  machine_readable/
-  checksums/
-```
+Near-term:
 
-Supported export modes:
+- Manual Docker Compose release validation
+- v0.1.0-alpha tag and GitHub Release
+- Better workbench tables for policy matches and evidence
+- Optional LLM review layer
+- Stronger policy matching and section-level scoring
 
-- single_policy_full_text
-- related_policy_bundle
-- cited_sections_only
-- evidence_bundle
-- machine_readable_json
+Later:
 
-Every exported policy original must retain source URL or source identifier, retrieval timestamp, content timestamp when available, and sha256 checksum.
+- Qdrant, embedding, reranking, and RAG
+- Policy source ingestion and official-source sync
+- OCR pipeline
+- Authentication and authorization
+- Background worker execution
+- DOCX/PDF/PPT report exports
+- Production observability and audit logging
 
-## Contributing
+## Security And Privacy
 
-Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) before opening issues, pull requests, or AI-agent generated changes.
+- Never commit `.env`, API keys, tokens, private documents, local storage, databases, or generated ZIP bundles.
+- `.env.example` documents variable names only.
+- Uploaded files and exports are stored under `STORAGE_DIR`.
+- LLM Provider responses never expose API key values.
+- Demo policy files in `examples/` are fictional and are not official policies.
 
 ## Disclaimer
 
-PolicyLens is a research aid, not legal, investment, policy compliance, or financial advice. Generated analysis must be reviewed by qualified humans. Policy sources, citations, timestamps, and checksums should be preserved so downstream users can verify conclusions against original materials.
+PolicyLens is a research aid, not legal, investment, policy compliance, or financial advice. Generated analysis, policy matches, impact matrices, and Markdown reports must be reviewed by qualified humans. Policy sources, citations, timestamps, and checksums should be preserved so downstream users can verify conclusions against source materials.
+
+## Contributing
+
+Contributions are welcome. Please read `CONTRIBUTING.md` and `AGENTS.md` before opening issues, pull requests, or AI-agent generated changes.
+
+## License
+
+MIT. See `LICENSE`.

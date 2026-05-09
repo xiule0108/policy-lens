@@ -11,10 +11,10 @@ def get_health() -> HealthResponse:
     return HealthResponse(
         status="ok",
         service="policy-lens-api",
-        version="0.1.0",
+        version="0.1.0-alpha",
         dependencies={
             "database": get_database_status(),
             "vector_store": {"status": "not_connected", "mode": "v0.1_mock"},
-            "storage": {"status": "local_reserved", "mode": "v0.1_mock"},
+            "storage": {"status": "configured", "mode": "local_filesystem"},
         },
     )
