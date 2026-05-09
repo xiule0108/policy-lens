@@ -120,3 +120,120 @@ Ready for Phase A validation PR: yes.
 Reason: backend, frontend, migration, and HTTP E2E checks passed locally, release artifacts are present, and no release-blocking issue was found in the validations that were actually run.
 
 Recommended before tag/release: run one final human browser click-through and Docker Compose validation on a machine with Docker and browser automation or manual browser access available.
+
+## Phase B Final Validation
+
+Date: 2026-05-09 12:06:40 CST
+Commit: 2b81a68a00f24221a55cd7b12fffa274ded368ff
+
+### Local Checks
+
+- `bash scripts/check.sh`: passed
+- Backend pytest: 132 passed
+- Frontend typecheck: passed
+- Frontend build: passed
+- SQLite migration smoke: passed
+
+The command completed with `==> Local validation finished`.
+
+### Docker Compose Final Validation
+
+- Docker runtime: Docker CLI and Docker Compose with a Colima-backed local Docker daemon
+- `docker compose config`: passed
+- `docker compose up --build -d`: passed
+- `docker compose ps`: passed. The `api`, `postgres`, `qdrant`, `web`, and `worker` services were all up.
+- `docker compose exec -T api alembic upgrade head`: passed
+- `/api/health`: passed
+
+Health response summary:
+
+```json
+{
+  "status": "ok",
+  "service": "policy-lens-api",
+  "version": "0.1.0-alpha",
+  "dependencies": {
+    "database": {"status": "configured", "mode": "sqlalchemy"},
+    "vector_store": {"status": "not_connected", "mode": "v0.1_mock"},
+    "storage": {"status": "configured", "mode": "local_filesystem"}
+  }
+}
+```
+
+- `POLICYLENS_API_BASE_URL=http://localhost:8000 python3 scripts/e2e_demo.py`: passed
+- Compose API logs: no application errors observed in the checked log tail. The API served the expected health, upload, parse, policy ingestion, analysis, evidence, impact matrix, report, export, and download requests with successful 2xx responses.
+- Compose web logs: no application errors observed in the checked log tail. The web service started successfully with Next.js and served the validated routes.
+- `docker compose down`: completed after validation
+
+HTTP E2E demo output:
+
+```text
+PolicyLens v0.1 demo workflow completed successfully.
+Project ID: 5c335695-390b-477a-af9c-e77aea1fbe89
+Policy ID: 0d75007f-dd8f-4e8f-a692-1fa3308d93c0
+Analysis Job ID: e39821bc-aa3b-47e7-a977-3dadbab93208
+Report Export ID: 3599203c-d982-46fa-b598-32e1e909c79f
+Policy Export ID: 33865506-889b-4a1b-9d66-011018017a02
+```
+
+### Web Workbench Final Click-through
+
+Runtime:
+
+- Frontend: Docker Compose web service at `http://localhost:3000`
+- Backend: Docker Compose API service at `http://localhost:8000`
+- Browser: Chrome Incognito window
+
+Validation project:
+
+- Project ID: `acf51939-301b-4ebc-9e9f-2389e50af432`
+- Analysis Job ID: `f953e711-1945-45bb-bae8-9ab209af9efd`
+- Analysis Result ID: `167ff4bd-9ca8-4ca1-8575-de2e51822134`
+- Report Export ID: `99969807-5294-4889-b921-f13789ced772`
+- Policy Export ID: `d12cfacd-e53d-41b4-91ce-2844e0984607`
+
+Results:
+
+- Home: passed. The home page opened and displayed `v0.1.0-alpha`.
+- Projects: passed. The projects route opened successfully.
+- New project: passed. A new project named `v0.1 final validation project` was created from the web form.
+- Project workbench: passed. The project workbench opened and loaded real project data.
+- Upload policy: passed. `examples/demo-policy-notice.txt` was selected through the browser file picker and uploaded with role `policy`.
+- Parse policy: passed. The policy document moved to `parsed`.
+- Ingest policy: passed. The policy document was ingested from the workbench, and the policy count updated.
+- Upload research article: API-assisted. Reopening the file picker in this automation environment repeatedly triggered a Chrome remote debugging permission prompt. The prompt was not allowed. The research article was uploaded and parsed through the same local API, then the workbench was reloaded and showed the parsed article in the document list. The policy file upload already validated the workbench file input path.
+- Parse research article: passed through local API, and the workbench displayed the research article as `parsed`.
+- Run analysis: passed from the workbench. The selected research article produced a completed analysis job.
+- Steps: passed. The workbench displayed the persisted steps, including `research_plan`, `parse_document_if_needed`, `collect_document_context`, `extract_article_signals`, `extract_claims`, `retrieve_policy_candidates`, `match_policy_sections`, `build_evidence_map`, `build_impact_matrix`, `summarize_findings`, and `draft_markdown_report`.
+- Plan / result: passed. The workbench loaded plan and result-backed summary data.
+- Claims: passed. The evidence tab displayed 10 deterministic claims.
+- Policy matches: passed. The policy association tab showed 2 candidate policies and 50 section matches.
+- Evidence: passed. The evidence tab displayed the claim-policy evidence map and fact boundaries.
+- Impact matrix: passed. The impact matrix tab displayed rule-based impact items with subject, direction, horizon, mechanism, market variable, confidence, and explanation columns.
+- Markdown report: passed. The report tab displayed a generated Markdown report beginning with `# 政策与市场研究解析报告`.
+- Report export: passed. The workbench created a completed report export and displayed a download link.
+- Report export download: passed through the download endpoint. The downloaded ZIP was saved to `/tmp` for validation and contained `manifest.json`, `reports/report.md`, `reports/report.json`, `reports/report.html`, `evidence/evidence.json`, `impact_matrix/impact_matrix.json`, `policy_matches/policy_matches.json`, and `checksums/sha256.txt`.
+- Policy original export: passed. The workbench created a completed policy original export and displayed a download link.
+- Policy original export download: passed through the download endpoint. The downloaded ZIP was saved to `/tmp` for validation and contained policy Markdown/JSON files, `manifest.json`, and `checksums/sha256.txt`.
+- Policy library: passed. `/policy-library` displayed policies from the database. `查看原文` loaded normalized policy text and sections.
+- Model settings: passed. `/settings/models` displayed provider presets, env var names, `missing env` status, local provider metadata, and did not ask for real API key values.
+
+Notes:
+
+- A normal Chrome window showed a hydration mismatch overlay caused by the Immersive Translate extension adding an attribute to the `<html>` element. The final click-through used Chrome Incognito, where the page loaded cleanly.
+- Chrome displayed a remote debugging permission prompt during file picker automation. The prompt was not granted. This was treated as an automation environment constraint rather than an app behavior failure.
+- Screenshots were not committed to the repository.
+
+### Security / Repository Hygiene
+
+- `.env` was created from `.env.example` for Compose validation and removed after validation.
+- `storage/` and `services/api/storage/` remained ignored local runtime artifacts and were not committed.
+- Export ZIP downloads were written to `/tmp` for validation and removed before commit.
+- No real API keys were entered in the browser, written to `.env`, or committed.
+- Demo policy data remained clearly marked as fictional example data.
+
+### Final Release Recommendation
+
+Ready for tag/release: yes.
+
+Reason: local checks, Docker Compose startup, PostgreSQL migration, Compose API health, HTTP E2E demo, core Web workbench flow, policy library, model settings, report export, and policy original export all passed. The only observed limitations were automation-environment issues around Chrome extension behavior and file picker remote debugging prompts; neither indicates a release-blocking application bug.
